@@ -444,53 +444,47 @@ function fn__vfn {
 
     echo 'Run the following command to initialize the staking pool:'
     pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --profile mainnet-owner | jq .Result[0].pool_address | tr -d '"')
+    echo $pool_address
 
-    if [ -z "$pool_address" ]; then
-        ${APTOS_BIN} stake create-staking-contract \
-            --operator $operator_address \
-            --voter $voter_address \
-            --amount 100000000000000 \
-            --commission-percentage 10 \
-            --profile mainnet-owner \
-            --assume-yes
+    ${APTOS_BIN} stake create-staking-contract \
+        --operator $operator_address \
+        --voter $voter_address \
+        --amount 100000000000000 \
+        --commission-percentage 10 \
+        --profile mainnet-owner \
+        --assume-yes
 
-        pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --profile mainnet-owner | jq .Result[0].pool_address | tr -d '"')
-        echo '* pool address created: '$pool_address
-    else
-        echo '* pool address exist: '$pool_address
-    fi
+    pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --profile mainnet-owner | jq .Result[0].pool_address | tr -d '"')
+    echo '* pool address created: '$pool_address
 
     echo 'Join the validator set:'
 
     output=$(${APTOS_BIN} node show-validator-set --profile mainnet-operator | grep $pool_address)
-    if [ -z "$output" ]; then
-        echo 'Update on-chain network addresses:'
-        ${APTOS_BIN} node update-validator-network-addresses \
-            --pool-address $pool_address \
-            --operator-config-file vfn/operator.yaml \
-            --profile mainnet-operator \
-            --assume-yes || exit 34
 
-        echo 'Update on-chain consensus key: '
-        ${APTOS_BIN} node update-consensus-key \
-            --pool-address $pool_address \
-            --operator-config-file vfn/operator.yaml \
-            --profile mainnet-operator \
-            --assume-yes || exit 35
+    echo 'Update on-chain network addresses:'
+    ${APTOS_BIN} node update-validator-network-addresses \
+        --pool-address $pool_address \
+        --operator-config-file vfn/operator.yaml \
+        --profile mainnet-operator \
+        --assume-yes
 
-        echo 'Join the validator set:'
-        ${APTOS_BIN} node join-validator-set \
-            --pool-address $pool_address \
-            --profile mainnet-operator \
-            --assume-yes || exit 36
+    echo 'Update on-chain consensus key: '
+    ${APTOS_BIN} node update-consensus-key \
+        --pool-address $pool_address \
+        --operator-config-file vfn/operator.yaml \
+        --profile mainnet-operator \
+        --assume-yes
 
-        for path in 'keys/validator-identity.yaml' 'keys/validator-full-node-identity.yaml'; do
-            sed -i 's|account_address:.*|account_address: '$pool_address'|g' $path
-            echo '* account_address has been updated in '$path
-        done
-    else
-        echo ' * pool address has already been added to the list of validators: '$pool_address
-    fi
+    echo 'Join the validator set:'
+    ${APTOS_BIN} node join-validator-set \
+        --pool-address $pool_address \
+        --profile mainnet-operator \
+        --assume-yes
+
+    for path in 'keys/validator-identity.yaml' 'keys/validator-full-node-identity.yaml'; do
+        sed -i 's|account_address:.*|account_address: '$pool_address'|g' $path
+        echo '* account_address has been updated in '$path
+    done
 
     echo 'Gensesis:'
     genesis_path=${GENESIS_DIR}/genesis.blob
