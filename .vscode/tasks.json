@@ -1,0 +1,47 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "validators: init",
+            "type": "shell",
+            "command": "APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core  ./script.sh init",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "process-compose: run",
+            "type": "shell",
+            "command": "process-compose -p 8070",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "vfn: init",
+            "type": "shell",
+            "command": "./script.sh vfn",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "vfn: watchexec init",
+            "type": "shell",
+            "command": "watchexec -w script.sh -c  -- ./script.sh vfn",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

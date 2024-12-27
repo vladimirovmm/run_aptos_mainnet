@@ -23,7 +23,7 @@ APTOS_NODE_BIN=${BIN_DIR}/${APTOS_NODE_BIN_NAME}
 function fn__necessary_programs {
     echo "Checking for the existence of the necessary programs:"
 
-    for item in 'cargo' 'sed' 'grep' 'curl' 'printf'; do
+    for item in 'cargo' 'sed' 'grep' 'curl' 'printf' 'tr'; do
         echo "*" ${item}
         if [ -z "$(command -v $item)" ]; then
             echo "The '$item' program is not installed"
@@ -331,7 +331,7 @@ function fn__clear {
 }
 
 function fn__generate_key {
-    if [ -z $1 ]; then
+    if [ -z "$1" ]; then
         echo 'Error: An empty path was passed'
         exit 41
     fi
@@ -352,29 +352,7 @@ function fn__vfn {
     mkdir -p vfn
     cd vfn
 
-    mkdir -p .aptos
-
-    owner_address=$(cat ${ADDITIONAL_ACCOUNTS_DIR}/u1/user.address)
-
-    echo '---
-profiles:
-  default:
-    network: Local
-    private_key: "'$(cat ${ADDITIONAL_ACCOUNTS_DIR}/u1/user)'"
-    public_key: "'$(cat ${ADDITIONAL_ACCOUNTS_DIR}/u1/user.pub)'"
-    account: '$owner_address'
-    rest_url: "http://localhost:8080"
-' >.aptos/config.yaml
-
-    echo 'Checking the balance'
-    balance=$(aptos account balance | jq .Result[0].balance)
-    if [ $balance -lt ${MIN_AMOUNT} ]; then
-        echo 'Error: Insufficient balance '$balance
-        exit 31
-    fi
-    echo '* Owner balance: '$balance
-
-    echo 'Generating keys'
+    echo 'Generating a configuration file with keys:'
     vport=10201
     fport=10202
     if [ ! -f keys/public-keys.yaml ]; then
@@ -391,83 +369,128 @@ profiles:
         echo '* The `public-keys.yaml` keys already exist'
     fi
 
-    mkdir -p ${ROOT_DIR}/vfn/vfn
-    operator_address=($(cat vfn/owner.yaml | grep 'operator_account_address'))
-    operator_address=${operator_address[1]}
+    echo 'Key generation:'
 
-    voter_address=($(cat vfn/owner.yaml | grep 'voter_account_address'))
-    voter_address=${voter_address[1]}
+    important_keys=keys/important
+    mkdir -p $important_keys
 
-    echo "Address:"
-    echo "* operator_address:" $operator_address
-    echo "* voter_address" $voter_address
+    for tp in 'owner' 'operator' 'voter'; do
+        nkey=$important_keys/$tp
+        if [ -f $nkey ]; then
+            echo '* '$nkey' already exists'
+            continue
+        fi
 
-    echo "Initialize a staking pool"
-    ${APTOS_BIN} stake create-staking-contract \
-        --operator $operator_address \
-        --voter $voter_address \
-        --amount ${MIN_AMOUNT} \
-        --commission-percentage 10 \
-        --assume-yes
+        if [ $tp == 'owner' ]; then
+            path_key=../additional_accounts/u1/user
+            cp $path_key $nkey
+            cp $path_key.pub $nkey.pub
+            cp $path_key.address $nkey.address
+            echo '* The key for owner is copied from '$path_key
+        else
+            fn__generate_key $nkey
+        fi
 
-    echo "Operator balance:"
-    balance=$(${APTOS_BIN} account balance --account $operator_address | jq .Result[0].balance)
+        account_address=$(cat $nkey'.address')
+        public_key=$(cat $nkey'.pub')
+
+        for path in 'keys' 'vfn'; do
+            for fpath in $(find $path -type f -name '*.yaml'); do
+                sed -i 's/'$tp'_account_public_key:.*/'$tp'_account_public_key: '$public_key'/g' $fpath
+                sed -i 's/'$tp'_network_public_key:.*/'$tp'_network_public_key: '$public_key'/g' $fpath
+                sed -i 's/'$tp'_account_address:.*/'$tp'_account_address: "'$account_address'"/g' $fpath
+            done
+        done
+
+        ${APTOS_BIN} init \
+            --profile mainnet-$tp \
+            --private-key-file $important_keys/$tp \
+            --skip-faucet \
+            --network local \
+            --assume-yes &>/dev/null
+    done
+
+    owner_address=$(cat $important_keys/owner.address)
+    operator_address=$(cat $important_keys/operator.address)
+    voter_address=$(cat $important_keys/voter.address)
+
+    echo 'Addresses:'
+    echo '* Owner address: '$owner_address
+    echo '* Operator address: '$operator_address
+    echo '* Voter address: '$voter_address
+
+    echo 'Checking the onwer balance:'
+    balance=$(${APTOS_BIN} account balance --profile mainnet-owner | jq .Result[0].balance)
+    if [ $balance -lt ${MIN_AMOUNT} ]; then
+        echo 'Error: Insufficient balance '$balance
+        exit 31
+    else
+        echo '* Owner balance: '$balance
+    fi
+
+    echo 'Checking the operator balance:'
+    balance=$(${APTOS_BIN} account balance --profile mainnet-operator | jq .Result[0].balance)
     if [ $balance -lt ${MIN_AMOUNT} ]; then
         echo ${MIN_AMOUNT}
         ${APTOS_BIN} account transfer \
             --account $operator_address \
             --amount ${MIN_AMOUNT} \
-            --assume-yes
+            --profile mainnet-owner \
+            --assume-yes || exit 32
         echo '* The operator`s '$operator_addresss' balance has been replenished' ${MIN_AMOUNT}
     else
-        echo '* The operator`s balance: '$balance
+        echo '* Operator balance: '$balance
     fi
 
-    # for tp in 'voter' 'operator'; do
-    #     fn__generate_key ${ROOT_DIR}/vfn/vfn/$tp || exit 32
-    # done
+    echo 'Run the following command to initialize the staking pool:'
+    pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --profile mainnet-owner | jq .Result[0].pool_address | tr -d '"')
 
-    # for path in $(find . -name *.yaml -type f); do
-    #     echo $path
-
-    #     # owner_account_address
-    #     # owner_account_public_key
-    #     # voter_account_address
-    #     # voter_account_public_key
-    #     # operator_account_address
-    #     # operator_account_public_key
-
-    # done
-
-    exit 100
-
-    operator_address=$(cat ${ROOT_DIR}/vfn/vfn/operator)
-    voter_address=$(cat ${ROOT_DIR}/vfn/vfn/voter)
-    ${APTOS_BIN} stake create-staking-contract --operator $operator_address \
-        --voter $voter_address \
-        --amount ${MIN_AMOUNT} \
-        --commission-percentage 10 \
-        --assume-yes
-
-    balance=$(${APTOS_BIN} account balance --account $operator_address | jq .Result[0].balance)
-    if [ $balance -lt ${MIN_AMOUNT} ]; then
-        ${APTOS_BIN} account transfer \
-            --account $operator_address \
-            --amount ${MIN_AMOUNT} \
+    if [ -z "$pool_address" ]; then
+        ${APTOS_BIN} stake create-staking-contract \
+            --operator $operator_address \
+            --voter $voter_address \
+            --amount 100000000000000 \
+            --commission-percentage 10 \
+            --profile mainnet-owner \
             --assume-yes
-        echo '* The operator`s balance has been replenished '$operator_address
+
+        pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --profile mainnet-owner | jq .Result[0].pool_address | tr -d '"')
+        echo '* pool address created: '$pool_address
     else
-        echo '* The operator`s balance: '$balance
+        echo '* pool address exist: '$pool_address
     fi
 
-    output=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address)
+    echo 'Join the validator set:'
 
-    # for path in $(find ./keys -type f -name *.yaml); do
-    #     echo $path
-    #     sed -i 's/'$tp'_account_public_key:.*/'$tp'_account_public_key: '$public_key'/g' $path
-    # done
+    output=$(${APTOS_BIN} node show-validator-set --profile mainnet-operator | grep $pool_address)
+    if [ -z "$output" ]; then
+        echo 'Update on-chain network addresses:'
+        ${APTOS_BIN} node update-validator-network-addresses \
+            --pool-address $pool_address \
+            --operator-config-file vfn/operator.yaml \
+            --profile mainnet-operator \
+            --assume-yes || exit 34
 
-    exit 100
+        echo 'Update on-chain consensus key: '
+        ${APTOS_BIN} node update-consensus-key \
+            --pool-address $pool_address \
+            --operator-config-file vfn/operator.yaml \
+            --profile mainnet-operator \
+            --assume-yes || exit 35
+
+        echo 'Join the validator set:'
+        ${APTOS_BIN} node join-validator-set \
+            --pool-address $pool_address \
+            --profile mainnet-operator \
+            --assume-yes
+
+        for path in 'keys/validator-identity.yaml' 'keys/validator-full-node-identity.yaml'; do
+            sed -i 's|account_address:.*|account_address: '$pool_address'|g' $path
+            echo '* account_address has been updated in '$path
+        done
+    else
+        echo ' * pool address has already been added to the list of validators: '$pool_address
+    fi
 
     echo 'Gensesis:'
     genesis_path=${GENESIS_DIR}/genesis.blob
@@ -477,34 +500,34 @@ profiles:
 
     echo 'Configs:'
 
-    mkdir -p config
+    if [ ! -f config/validator.yaml ]; then
+        mkdir -p config
 
-    node_url=http://localhost:8080
-    output=$(${APTOS_BIN} node show-validator-set --url $node_url)
-    count=$(echo $output | jq '.Result.active_validators | length')
+        node_url=http://localhost:8080
+        output=$(${APTOS_BIN} node show-validator-set --url $node_url)
+        count=$(echo $output | jq '.Result.active_validators | length')
 
-    seeds_validator=""
-    seeds_full_node=""
-    for ((i = 0; i < $count; i++)); do
-        account_address=$(echo $output | jq .Result.active_validators[$i].account_address)
-        validator_network_addresses=$(echo $output | jq .Result.active_validators[$i].config.validator_network_addresses[0])
-        fullnode_network_addresses=$(echo $output | jq .Result.active_validators[$i].config.fullnode_network_addresses[0])
+        seeds_validator=""
+        seeds_full_node=""
+        for ((i = 0; i < $count; i++)); do
+            account_address=$(echo $output | jq .Result.active_validators[$i].account_address)
+            validator_network_addresses=$(echo $output | jq .Result.active_validators[$i].config.validator_network_addresses[0])
+            fullnode_network_addresses=$(echo $output | jq .Result.active_validators[$i].config.fullnode_network_addresses[0])
 
-        seeds_validator="$seeds_validator
+            seeds_validator="$seeds_validator
         $account_address:
             addresses:
                 - $validator_network_addresses
             role: Validator"
-        seeds_full_node="$seeds_full_node
+            seeds_full_node="$seeds_full_node
         $account_address:
             addresses:
                 - $fullnode_network_addresses
             role: ValidatorFullNode"
-    done
-
-    # if [ ! -f config/validator.yaml ]; then
-    # wget -O config/validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
-    echo 'base:
+        done
+        echo '* seeds config has been genirated'
+        # wget -O config/validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
+        echo 'base:
   role: "validator"
   data_dir: "./data"
   waypoint:
@@ -547,15 +570,18 @@ full_node_networks:
         path: ./keys/validator-full-node-identity.yaml
     
     seeds:' >config/validator.yaml
-    echo "$seeds_validator" >>config/validator.yaml
-    # echo "$seeds_full_node" >>config/validator.yaml
+        echo "$seeds_validator" >>config/validator.yaml
+        # echo "$seeds_full_node" >>config/validator.yaml
 
-    echo 'api:
+        echo 'api:
   enabled: true
   address: "0.0.0.0:18080"
 ' >>config/validator.yaml
 
-    # fi
+        echo '* config/validator.yaml has been generated'
+    else
+        echo '* config has already exist '
+    fi
 
     cd -
 }
@@ -566,9 +592,11 @@ case $1 in
 init) fn__init ;;
 run) process-compose -p 8070 ;;
 vfn) fn__vfn ;;
-clear) rm -rf v1 v2 v3 ;;
+clear) rm -rf additional_accounts genesis node vfn ;;
 *) echo "$1 is not an option" ;;
 esac
 
 # APTOS_SOURCE=<PATH/TO/SOUECE> ./script.sh init
-# process-compose -p 8070
+# ./script.sh run
+# ./script.sh vfn
+# ./script.sh clear
