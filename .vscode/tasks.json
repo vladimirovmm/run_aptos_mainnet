@@ -42,6 +42,16 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "show-validator",
+            "type": "shell",
+            "command": "aptos node show-validator-set --url http://localhost:8080",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }

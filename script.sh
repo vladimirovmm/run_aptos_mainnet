@@ -482,7 +482,7 @@ function fn__vfn {
         ${APTOS_BIN} node join-validator-set \
             --pool-address $pool_address \
             --profile mainnet-operator \
-            --assume-yes
+            --assume-yes || exit 36
 
         for path in 'keys/validator-identity.yaml' 'keys/validator-full-node-identity.yaml'; do
             sed -i 's|account_address:.*|account_address: '$pool_address'|g' $path
