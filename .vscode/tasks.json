@@ -32,6 +32,16 @@
             }
         },
         {
+            "label": "validators: clear data",
+            "type": "shell",
+            "command": "./script.sh clear_data",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "process-compose: run",
             "type": "shell",
             "command": "process-compose -p 8070",

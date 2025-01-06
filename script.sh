@@ -485,6 +485,7 @@ function fn__vfn {
 
     echo 'Checking the operator balance:'
     balance=$(${APTOS_BIN} account balance --profile mainnet-operator | jq .Result[0].balance)
+
     if [ $balance -lt ${MIN_AMOUNT} ]; then
         echo ${MIN_AMOUNT}
         ${APTOS_BIN} account transfer \
@@ -597,6 +598,7 @@ init) fn__init ;;
 run) process-compose -p 8070 ;;
 vfn) fn__vfn ;;
 clear) rm -rf additional_accounts genesis node vfn ;;
+clear_data) find ./ -type d -name data_validator -exec rm -rf {} \; ;;
 *) echo "$1 is not an option" ;;
 esac
 
