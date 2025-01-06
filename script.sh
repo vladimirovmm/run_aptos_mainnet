@@ -20,6 +20,103 @@ APTOS_BIN=${BIN_DIR}/${APTOS_BIN_NAME}
 APTOS_NODE_BIN_NAME='aptos-node'
 APTOS_NODE_BIN=${BIN_DIR}/${APTOS_NODE_BIN_NAME}
 
+VALIDATOR_CONFIG='base:
+  data_dir: "data_validator"
+  role: "validator"
+  waypoint:
+    from_file: "GENESIS_DIR/waypoint.txt"
+
+consensus:
+  safety_rules:
+    service:
+      type: "local"
+    backend:
+      type: "on_disk_storage"
+      path: "secure-data.json"
+      namespace: ~
+    initial_safety_rules_config:
+      from_file:
+        waypoint:
+          from_file: "GENESIS_DIR/waypoint.txt"
+        identity_blob_path: "validator-identity.yaml"
+
+execution:
+  genesis_file_location: "GENESIS_DIR/genesis.blob"
+
+validator_network:
+  discovery_method: "onchain"
+  listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
+  identity:
+    type: "from_file"
+    path: "validator-identity.yaml"
+  network_id: "validator"
+  mutual_authentication: true
+  max_frame_size: 4194304 # 4 MiB
+storage:
+  backup_service_address: "0.0.0.0:0"
+  rocksdb_configs:
+    enable_storage_sharding: false
+api:
+  enabled: true
+  address: "0.0.0.0:API_PORT"
+state_sync:
+  state_sync_driver:
+    enable_auto_bootstrapping: true
+    bootstrapping_mode: "ApplyTransactionOutputsFromGenesis"
+admin_service:
+  enabled: false
+  port: 0
+inspection_service:
+  port: 0'
+
+VFN_CONFIG='base:
+  role: "validator"
+  data_dir: "./data"
+  waypoint:
+    from_file: WAYPOINT_PATH
+
+consensus:
+  safety_rules:
+    service:
+      type: "local"
+    backend:
+      type: "on_disk_storage"
+      path: secure-data.json
+      namespace: ~
+    initial_safety_rules_config:
+      from_file:
+        waypoint:
+          from_file: WAYPOINT_PATH
+        identity_blob_path: ./keys/validator-identity.yaml
+
+execution:
+  genesis_file_location: GENESIS_PATH
+
+storage:
+  rocksdb_configs:
+    enable_storage_sharding: true
+
+validator_network:
+  discovery_method: "onchain"
+  mutual_authentication: true
+  identity:
+    type: "from_file"
+    path: ./keys/validator-identity.yaml
+
+full_node_networks:
+  - network_id:
+      private: "vfn"
+    listen_address: "/ip4/0.0.0.0/tcp/FULL_NODE_NETWORKS_PORT"
+    identity:
+        type: "from_file"
+        path: ./keys/validator-full-node-identity.yaml
+    
+    seeds: SEEDS_LIST
+api:
+  enabled: true
+  address: "0.0.0.0:18080"
+'
+
 function fn__necessary_programs {
     echo "Checking for the existence of the necessary programs:"
 
@@ -227,59 +324,17 @@ function fn__genesis {
     cd -
 }
 
-function fn__node_config {
+function fn__validator_config {
     let vport=${SVALIDATOR_PORT}+$1
     let fport=${SFULLNODE_PORT}+$i
     let api_port=8079+$1
 
-    echo 'base:
-  data_dir: "data_validator"
-  role: "validator"
-  waypoint:
-    from_file: "'${GENESIS_DIR}'/waypoint.txt"
+    config=${VALIDATOR_CONFIG}
+    config="${config//GENESIS_DIR/"${GENESIS_DIR}"}"
+    config="${config//API_PORT/"$api_port"}"
+    config="${config//VALIDATOR_NETWORK_PORT/"$vport"}"
 
-consensus:
-  safety_rules:
-    service:
-      type: "local"
-    backend:
-      type: "on_disk_storage"
-      path: "secure-data.json"
-      namespace: ~
-    initial_safety_rules_config:
-      from_file:
-        waypoint:
-          from_file: "'${GENESIS_DIR}'/waypoint.txt"
-        identity_blob_path: "validator-identity.yaml"
-
-execution:
-  genesis_file_location: "'${GENESIS_DIR}'/genesis.blob"
-
-validator_network:
-  discovery_method: "onchain"
-  listen_address: "/ip4/0.0.0.0/tcp/'$vport'"
-  identity:
-    type: "from_file"
-    path: "validator-identity.yaml"
-  network_id: "validator"
-  mutual_authentication: true
-  max_frame_size: 4194304 # 4 MiB
-storage:
-  backup_service_address: "0.0.0.0:0"
-  rocksdb_configs:
-    enable_storage_sharding: false
-api:
-  enabled: true
-  address: "0.0.0.0:'$api_port'"
-state_sync:
-  state_sync_driver:
-    enable_auto_bootstrapping: true
-    bootstrapping_mode: "ApplyTransactionOutputsFromGenesis"
-admin_service:
-  enabled: false
-  port: 0
-inspection_service:
-  port: 0' >${NODE_DIR}/v$1/validator.yaml
+    echo "$config" >${NODE_DIR}/v$1/validator.yaml
 }
 
 function fn__init {
@@ -290,7 +345,7 @@ function fn__init {
     fn__genesis || { exit 24; }
 
     for ((i = 1; i <= ${NODE_COUNT}; i++)); do
-        fn__node_config $i || { exit 25; }
+        fn__validator_config $i || { exit 25; }
     done
 
     node_url=http://localhost:8080
@@ -443,8 +498,6 @@ function fn__vfn {
     fi
 
     echo 'Run the following command to initialize the staking pool:'
-    pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --profile mainnet-owner | jq .Result[0].pool_address | tr -d '"')
-    echo $pool_address
 
     ${APTOS_BIN} stake create-staking-contract \
         --operator $operator_address \
@@ -521,57 +574,14 @@ function fn__vfn {
         done
         echo '* seeds config has been genirated'
         # wget -O config/validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
-        echo 'base:
-  role: "validator"
-  data_dir: "./data"
-  waypoint:
-    from_file: "'$waypoint_path'"
 
-consensus:
-  safety_rules:
-    service:
-      type: "local"
-    backend:
-      type: "on_disk_storage"
-      path: secure-data.json
-      namespace: ~
-    initial_safety_rules_config:
-      from_file:
-        waypoint:
-          from_file: "'$waypoint_path'"
-        identity_blob_path: ./keys/validator-identity.yaml
+        config=${VFN_CONFIG}
 
-execution:
-  genesis_file_location: "'$genesis_path'"
-
-storage:
-  rocksdb_configs:
-    enable_storage_sharding: true
-
-validator_network:
-  discovery_method: "onchain"
-  mutual_authentication: true
-  identity:
-    type: "from_file"
-    path: ./keys/validator-identity.yaml
-
-full_node_networks:
-  - network_id:
-      private: "vfn"
-    listen_address: "/ip4/0.0.0.0/tcp/'$fport'"
-    identity:
-        type: "from_file"
-        path: ./keys/validator-full-node-identity.yaml
-    
-    seeds:' >config/validator.yaml
-        echo "$seeds_validator" >>config/validator.yaml
-        # echo "$seeds_full_node" >>config/validator.yaml
-
-        echo 'api:
-  enabled: true
-  address: "0.0.0.0:18080"
-' >>config/validator.yaml
-
+        config="${config//WAYPOINT_PATH/"$waypoint_path"}"
+        config="${config//GENESIS_PATH/"$genesis_path"}"
+        config="${config//FULL_NODE_NETWORKS_PORT/"$fport"}"
+        config="${config//SEEDS_LIST/"$seeds_validator"}"
+        echo "$config" >config/validator.yaml
         echo '* config/validator.yaml has been generated'
     else
         echo '* config has already exist '
@@ -590,7 +600,7 @@ clear) rm -rf additional_accounts genesis node vfn ;;
 *) echo "$1 is not an option" ;;
 esac
 
-# APTOS_SOURCE=<PATH/TO/SOUECE> ./script.sh init
+# APTOS_SOURCE=<PATH/TO/SOURCE> ./script.sh init
 # ./script.sh run
 # ./script.sh vfn
 # ./script.sh clear

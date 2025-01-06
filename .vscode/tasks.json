@@ -1,12 +1,30 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558
-    // for the documentation about the tasks.json format
     "version": "2.0.0",
     "tasks": [
         {
             "label": "validators: init",
             "type": "shell",
-            "command": "APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core  ./script.sh init",
+            "command": "APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "validators: watchexec init",
+            "type": "shell",
+            "command": "watchexec -w script.sh -c -- APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "validators: clear",
+            "type": "shell",
+            "command": "./script.sh clear",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -37,6 +55,16 @@
             "label": "vfn: watchexec init",
             "type": "shell",
             "command": "watchexec -w script.sh -c  -- ./script.sh vfn",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "vfn: run",
+            "type": "shell",
+            "command": "cd vfn; ../bin/aptos-node --config config/validator.yaml",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
