@@ -22,6 +22,16 @@
             }
         },
         {
+            "label": "fullnode v5: watchexec run",
+            "type": "shell",
+            "command": "watchexec -w script.sh -c -- make fullnode",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "validators: clear",
             "type": "shell",
             "command": "./script.sh clear",
