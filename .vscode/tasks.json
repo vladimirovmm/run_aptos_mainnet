@@ -82,6 +82,36 @@
             }
         },
         {
+            "label": "pfn: init",
+            "type": "shell",
+            "command": "./script.sh pfn",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "pfn: watchexec init",
+            "type": "shell",
+            "command": "watchexec -w script.sh -c  -- ./script.sh pfn",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "pfn: run",
+            "type": "shell",
+            "command": "cd pfn; ../bin/aptos-node --config config/fullnode.yaml",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "show-validator",
             "type": "shell",
             "command": "aptos node show-validator-set --url http://localhost:8080",
