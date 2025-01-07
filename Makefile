@@ -5,9 +5,9 @@ v6_vfn:
 		../../bin/aptos-node --config vfn.yaml
 		# ../../bin/aptos-node --config validator.yaml
 
-v7_pfn:
+v3_pfn:
 	clear
-	cd node/v7;\
+	cd node/v3;\
 		rm -rf data/;\
 		../../bin/aptos-node --config pfn.yaml
 		# ../../bin/aptos-node --config validator.yaml

@@ -73,7 +73,7 @@ inspection_service:
 '
 
 # wget -O config/validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
-VFN_CONFIG='base:
+PRIVATE_VFN_CONFIG='base:
     role: "validator"
     data_dir: "./data"
     waypoint:
@@ -107,6 +107,7 @@ validator_network:
 full_node_networks:
     - network_id:
         private: "vfn"
+      discovery_method: "onchain"
       listen_address: "/ip4/0.0.0.0/tcp/FULLNODE_NETWORK_PORT"
       identity:
         type: "from_file"
@@ -145,30 +146,44 @@ PFN_CONFIG='base:
 execution:
     genesis_file_location: "GENESIS_DIR/genesis.blob"
 
-storage:
-    rocksdb_configs:
-        enable_storage_sharding: true
-
 full_node_networks:
-    # - network_id:
-    #       private: "vfn"
-    #   listen_address: "/ip4/0.0.0.0/tcp/FULLNODE_NETWORK_PORT"
-    #   identity:
-    #       type: "from_file"
-    #       path: ./keys/validator-full-node-identity.yaml
+    - network_id:
+          private: "vfn"
+      listen_address: "/ip4/0.0.0.0/tcp/FULLNODE_NETWORK_PORT"
+      identity:
+          type: "from_file"
+          path: ./keys/validator-full-node-identity.yaml
+      seeds: VALIDATOR_SEEDS_LIST
 
     - network_id: "public"
       discovery_method: "onchain"
       listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
       identity:
           type: "from_file"
-          path: "keys/validator-full-node-identity.yaml"
+          path: "keys/validator-identity.yaml"
       seeds: FULLNODE_SEEDS_LIST
-      seeds: VALIDATOR_SEEDS_LIST
+
+
+storage:
+    backup_service_address: "0.0.0.0:0"
+    rocksdb_configs:
+        enable_storage_sharding: true
 
 api:
     enabled: true
     address: "0.0.0.0:API_PORT"
+
+state_sync:
+    state_sync_driver:
+        enable_auto_bootstrapping: true
+        bootstrapping_mode: "ApplyTransactionOutputsFromGenesis"
+
+admin_service:
+    enabled: false
+    port: 0
+
+inspection_service:
+    port: 0
 '
 
 function fn__necessary_programs {
@@ -404,10 +419,10 @@ function fn__validator_config {
 
     declare -A configs
     configs[validator_config]=${VALIDATOR_CONFIG}
-    configs[vfn_config]=${VFN_CONFIG}
+    configs[private_vfn_config]=${PRIVATE_VFN_CONFIG}
     configs[pfn_config]=${PFN_CONFIG}
 
-    for var_name in validator_config vfn_config pfn_config; do
+    for var_name in validator_config private_vfn_config pfn_config; do
         config="${configs[$var_name]}"
         config="${config//GENESIS_DIR/"${GENESIS_DIR}"}"
         config="${config//API_PORT/"$api_port"}"
@@ -416,8 +431,13 @@ function fn__validator_config {
         configs[$var_name]="$config"
     done
 
+    public_vfn_config="${configs[private_vfn_config]}"
+    public_vfn_config="${public_vfn_config//private: \"vfn\"/}"
+    public_vfn_config="${public_vfn_config//- network_id:/- network_id: \"public\"}"
+
     echo "${configs[validator_config]}" >${NODE_DIR}/v$1/validator.yaml
-    echo "${configs[vfn_config]}" >${NODE_DIR}/v$1/vfn.yaml
+    echo "${configs[private_vfn_config]}" >${NODE_DIR}/v$1/private_vfn.yaml
+    echo "$public_vfn_config" >${NODE_DIR}/v$1/public_vfn.yaml
     echo "${configs[pfn_config]}" >${NODE_DIR}/v$1/pfn.yaml
 }
 
@@ -501,7 +521,7 @@ function fn__init {
     rm -rf ${NODE_DIR}/v1/data
 
     echo 'Set seeds:'
-    for path in $(find ${NODE_DIR} -type f -name 'validator.yaml' -or -name 'vfn.yaml' -or -name 'pfn.yaml'); do
+    for path in $(find ${NODE_DIR} -type f -name 'validator.yaml' -or -name 'private_vfn.yaml' -or -name 'public_vfn.yaml' -or -name 'pfn.yaml'); do
         source=$(cat $path)
         source="${source//VALIDATOR_SEEDS_LIST/"${validators_seeds}"}"
         source="${source//FULLNODE_SEEDS_LIST/"${fullnode_seeds}"}"
@@ -627,14 +647,14 @@ function fn__vfn {
 
     seeds_validator=$(fn__generate_seeds validators)
 
-    validator_config=${VFN_CONFIG}
+    validator_config=${PRIVATE_VFN_CONFIG}
     validator_config="${validator_config//GENESIS_DIR/"${GENESIS_DIR}"}"
     validator_config="${validator_config//VALIDATOR_NETWORK_PORT/"$vport"}"
     validator_config="${validator_config//FULLNODE_NETWORK_PORT/"$fport"}"
     validator_config="${validator_config//VALIDATOR_SEEDS_LIST/"$seeds_validator"}"
     validator_config="${validator_config//API_PORT/18080}"
-    echo "$validator_config" >config/vfn.yaml
-    echo '* config/vfn.yaml has been generated'
+    echo "$validator_config" >config/private_vfn.yaml
+    echo '* config/private_vfn.yaml has been generated'
 
     cd -
 }

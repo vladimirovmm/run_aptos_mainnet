@@ -32,9 +32,9 @@
             }
         },
         {
-            "label": "pfn_v7: run",
+            "label": "pfn_v3: run",
             "type": "shell",
-            "command": "make v7_pfn",
+            "command": "make v3_pfn",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
