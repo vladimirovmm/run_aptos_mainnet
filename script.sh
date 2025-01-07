@@ -6,7 +6,7 @@ GENESIS_DIR=${ROOT_DIR}/genesis
 NODE_DIR=${ROOT_DIR}/node
 SVALIDATOR_PORT=10000
 SFULLNODE_PORT=10100
-NODE_COUNT=6
+NODE_COUNT=7
 NODE_BALANCE=100000000000000000
 MIN_AMOUNT=100000000000000
 ADDITIONAL_ACCOUNTS=10
@@ -41,12 +41,12 @@ execution:
     genesis_file_location: "GENESIS_DIR/genesis.blob"
 
 validator_network:
+    network_id: "validator"
     discovery_method: "onchain"
     listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
     identity:
         type: "from_file"
         path: "keys/validator-identity.yaml"
-    network_id: "validator"
     mutual_authentication: true
     max_frame_size: 4194304 # 4 MiB
 
@@ -150,25 +150,26 @@ storage:
         enable_storage_sharding: true
 
 full_node_networks:
-    - network_id:
-          private: "vfn"
-      listen_address: "/ip4/0.0.0.0/tcp/6181"
-      seeds:
-          00000000000000000000000000000000d58bc7bb154b38039bc9096ce04e1237:
-              addresses:
-                  - "/ip4/<Validator IP Address>/tcp/6181/noise-ik/f0274c2774519281a8332d0bb9d8101bd58bc7bb154b38039bc9096ce04e1237/handshake/0"
-              role: "Validator"
+    # - network_id:
+    #       private: "vfn"
+    #   listen_address: "/ip4/0.0.0.0/tcp/FULLNODE_NETWORK_PORT"
+    #   identity:
+    #       type: "from_file"
+    #       path: ./keys/validator-full-node-identity.yaml
 
     - network_id: "public"
       discovery_method: "onchain"
-      listen_address: "/ip4/0.0.0.0/tcp/6182"
+      listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
       identity:
           type: "from_file"
           path: "keys/validator-full-node-identity.yaml"
+      seeds: FULLNODE_SEEDS_LIST
+      seeds: VALIDATOR_SEEDS_LIST
 
 api:
     enabled: true
-    address: "0.0.0.0:8080"'
+    address: "0.0.0.0:API_PORT"
+'
 
 function fn__necessary_programs {
     echo "Checking for the existence of the necessary programs:"
@@ -401,20 +402,23 @@ function fn__validator_config {
     let fport=${SFULLNODE_PORT}+$i
     let api_port=8079+$1
 
-    validator_config=${VALIDATOR_CONFIG}
-    validator_config="${validator_config//GENESIS_DIR/"${GENESIS_DIR}"}"
-    validator_config="${validator_config//API_PORT/"$api_port"}"
-    validator_config="${validator_config//VALIDATOR_NETWORK_PORT/"$vport"}"
-    validator_config="${validator_config//FULLNODE_NETWORK_PORT/"$fport"}"
+    declare -A configs
+    configs[validator_config]=${VALIDATOR_CONFIG}
+    configs[vfn_config]=${VFN_CONFIG}
+    configs[pfn_config]=${PFN_CONFIG}
 
-    vfn_config=${VFN_CONFIG}
-    vfn_config="${vfn_config//GENESIS_DIR/"${GENESIS_DIR}"}"
-    vfn_config="${vfn_config//API_PORT/"$api_port"}"
-    vfn_config="${vfn_config//VALIDATOR_NETWORK_PORT/"$vport"}"
-    vfn_config="${vfn_config//FULLNODE_NETWORK_PORT/"$fport"}"
+    for var_name in validator_config vfn_config pfn_config; do
+        config="${configs[$var_name]}"
+        config="${config//GENESIS_DIR/"${GENESIS_DIR}"}"
+        config="${config//API_PORT/"$api_port"}"
+        config="${config//VALIDATOR_NETWORK_PORT/"$vport"}"
+        config="${config//FULLNODE_NETWORK_PORT/"$fport"}"
+        configs[$var_name]="$config"
+    done
 
-    echo "$validator_config" >${NODE_DIR}/v$1/validator.yaml
-    echo "$vfn_config" >${NODE_DIR}/v$1/vfn.yaml
+    echo "${configs[validator_config]}" >${NODE_DIR}/v$1/validator.yaml
+    echo "${configs[vfn_config]}" >${NODE_DIR}/v$1/vfn.yaml
+    echo "${configs[pfn_config]}" >${NODE_DIR}/v$1/pfn.yaml
 }
 
 function fn__set_pool_address {
@@ -497,7 +501,7 @@ function fn__init {
     rm -rf ${NODE_DIR}/v1/data
 
     echo 'Set seeds:'
-    for path in $(find ${NODE_DIR} -type f -name 'vfn.yaml' -or -name 'validator.yaml'); do
+    for path in $(find ${NODE_DIR} -type f -name 'validator.yaml' -or -name 'vfn.yaml' -or -name 'pfn.yaml'); do
         source=$(cat $path)
         source="${source//VALIDATOR_SEEDS_LIST/"${validators_seeds}"}"
         source="${source//FULLNODE_SEEDS_LIST/"${fullnode_seeds}"}"

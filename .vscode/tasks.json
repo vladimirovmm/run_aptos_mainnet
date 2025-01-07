@@ -22,9 +22,19 @@
             }
         },
         {
-            "label": "fullnode: run",
+            "label": "vfn_v6: run",
             "type": "shell",
-            "command": "make fullnode",
+            "command": "make v6_vfn",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "pfn_v7: run",
+            "type": "shell",
+            "command": "make v7_pfn",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
