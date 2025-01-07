@@ -84,7 +84,7 @@
         {
             "label": "vfn: run",
             "type": "shell",
-            "command": "cd vfn; ../bin/aptos-node --config config/validator.yaml",
+            "command": "./script.sh vfn_run",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
