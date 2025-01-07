@@ -22,9 +22,9 @@
             }
         },
         {
-            "label": "fullnode v5: watchexec run",
+            "label": "fullnode: run",
             "type": "shell",
-            "command": "watchexec -w script.sh -c -- make fullnode",
+            "command": "make fullnode",
             "problemMatcher": [],
             "group": {
                 "kind": "build",

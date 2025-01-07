@@ -6,7 +6,7 @@ GENESIS_DIR=${ROOT_DIR}/genesis
 NODE_DIR=${ROOT_DIR}/node
 SVALIDATOR_PORT=10000
 SFULLNODE_PORT=10100
-NODE_COUNT=5
+NODE_COUNT=6
 NODE_BALANCE=100000000000000000
 MIN_AMOUNT=100000000000000
 ADDITIONAL_ACCOUNTS=10
@@ -19,7 +19,7 @@ APTOS_NODE_BIN_NAME='aptos-node'
 APTOS_NODE_BIN=${BIN_DIR}/${APTOS_NODE_BIN_NAME}
 
 VALIDATOR_CONFIG='base:
-  data_dir: "data_validator"
+  data_dir: "data"
   role: "validator"
   waypoint:
     from_file: "GENESIS_DIR/waypoint.txt"
@@ -50,6 +50,7 @@ validator_network:
   network_id: "validator"
   mutual_authentication: true
   max_frame_size: 4194304 # 4 MiB
+
 storage:
   backup_service_address: "0.0.0.0:0"
   rocksdb_configs:
@@ -67,9 +68,10 @@ admin_service:
 inspection_service:
   port: 0'
 
-FULLNODE_CONFIG='base:
-    data_dir: "./data_validator"
-    role: "full_node"
+# wget -O config/validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
+VFN_CONFIG='base:
+    role: "validator"
+    data_dir: "./data"
     waypoint:
         from_file: "GENESIS_DIR/waypoint.txt"
 
@@ -79,35 +81,38 @@ consensus:
             type: "local"
         backend:
             type: "on_disk_storage"
-            path: "secure-data.json"
+            path: secure-data.json
             namespace: ~
         initial_safety_rules_config:
             from_file:
                 waypoint:
                     from_file: "GENESIS_DIR/waypoint.txt"
-                identity_blob_path: "validator-identity.yaml"
+                identity_blob_path: ./keys/validator-identity.yaml
 
 execution:
     genesis_file_location: "GENESIS_DIR/genesis.blob"
 
-storage:
-    rocksdb_configs:
-        enable_storage_sharding: true
-  
+validator_network:
+    discovery_method: "onchain"
+    mutual_authentication: true
+    identity:
+        type: "from_file"
+        path: ./keys/validator-identity.yaml
+    listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
+
 full_node_networks:
     - network_id:
-          private: "vfn"
-      listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
+        private: "vfn"
+      listen_address: "/ip4/0.0.0.0/tcp/FULLNODE_NETWORK_PORT"
       identity:
-          type: "from_file"
-          path: "validator-identity.yaml"
+        type: "from_file"
+        path: ./keys/validator-full-node-identity.yaml
+      seeds: VALIDATOR_SEEDS_LIST
 
-    - network_id: "public"
-      discovery_method: "onchain"
-      listen_address: "/ip4/0.0.0.0/tcp/PUBLIC_NETWORK_PORT"
-      identity:
-          type: "from_file"
-          path: "validator-full-node-identity.yaml"
+storage:
+    backup_service_address: "0.0.0.0:0"
+    rocksdb_configs:
+        enable_storage_sharding: false
 api:
     enabled: true
     address: "0.0.0.0:API_PORT"
@@ -122,53 +127,6 @@ inspection_service:
     port: 0
 '
 
-# wget -O config/validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
-VFN_CONFIG='base:
-  role: "validator"
-  data_dir: "./data"
-  waypoint:
-    from_file: "GENESIS_DIR/waypoint.txt"
-
-consensus:
-  safety_rules:
-    service:
-      type: "local"
-    backend:
-      type: "on_disk_storage"
-      path: secure-data.json
-      namespace: ~
-    initial_safety_rules_config:
-      from_file:
-        waypoint:
-          from_file: "GENESIS_DIR/waypoint.txt"
-        identity_blob_path: ./keys/validator-identity.yaml
-
-execution:
-  genesis_file_location: "GENESIS_DIR/genesis.blob"
-
-storage:
-  rocksdb_configs:
-    enable_storage_sharding: true
-
-validator_network:
-  discovery_method: "onchain"
-  mutual_authentication: true
-  identity:
-    type: "from_file"
-    path: ./keys/validator-identity.yaml
-
-full_node_networks:
-  - network_id:
-      private: "vfn"
-    listen_address: "/ip4/0.0.0.0/tcp/FULL_NODE_NETWORKS_PORT"
-    identity:
-        type: "from_file"
-        path: ./keys/validator-full-node-identity.yaml
-    seeds: SEEDS_LIST
-api:
-  enabled: true
-  address: "0.0.0.0:18080"
-'
 PFN_CONFIG='base:
     role: "full_node"
     data_dir: "./data"
@@ -317,10 +275,10 @@ function fn__generating_keys_for_node {
         public_key=$(cat $nkey'.pub')
 
         for fpath in $(find $node_path -type f -name '*.yaml'); do
+            sed -i 's/'$tp'_account_address:.*/'$tp'_account_address: '$account_address'/g' $fpath
             sed -i 's/'$tp'_account_public_key:.*/'$tp'_account_public_key: '$public_key'/g' $fpath
             sed -i 's/'$tp'_account_private_key:.*/'$tp'_account_public_key: '$public_key'/g' $fpath
             sed -i 's/'$tp'_network_public_key:.*/'$tp'_network_public_key: '$public_key'/g' $fpath
-            sed -i 's/'$tp'_account_address:.*/'$tp'_account_address: "'$account_address'"/g' $fpath
         done
     done
 
@@ -435,15 +393,16 @@ function fn__validator_config {
     validator_config="${validator_config//GENESIS_DIR/"${GENESIS_DIR}"}"
     validator_config="${validator_config//API_PORT/"$api_port"}"
     validator_config="${validator_config//VALIDATOR_NETWORK_PORT/"$vport"}"
+    validator_config="${validator_config//FULLNODE_NETWORK_PORT/"$fport"}"
 
-    fullnode_config=${FULLNODE_CONFIG}
-    fullnode_config="${fullnode_config//GENESIS_DIR/"${GENESIS_DIR}"}"
-    fullnode_config="${fullnode_config//API_PORT/"$api_port"}"
-    fullnode_config="${fullnode_config//VALIDATOR_NETWORK_PORT/"$vport"}"
-    fullnode_config="${fullnode_config//PUBLIC_NETWORK_PORT/"$fport"}"
+    vfn_config=${VFN_CONFIG}
+    vfn_config="${vfn_config//GENESIS_DIR/"${GENESIS_DIR}"}"
+    vfn_config="${vfn_config//API_PORT/"$api_port"}"
+    vfn_config="${vfn_config//VALIDATOR_NETWORK_PORT/"$vport"}"
+    vfn_config="${vfn_config//FULLNODE_NETWORK_PORT/"$fport"}"
 
     echo "$validator_config" >${NODE_DIR}/v$1/validator.yaml
-    echo "$fullnode_config" >${NODE_DIR}/v$1/fullnode.yaml
+    echo "$vfn_config" >${NODE_DIR}/v$1/vfn.yaml
 }
 
 function fn__set_pool_address {
@@ -451,46 +410,7 @@ function fn__set_pool_address {
     owner_address=$(cat $node_path/keys/important/owner.address)
     pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --url $node_url | jq .Result[0].pool_address | tr -d '"') || exit 38
     find $node_path -type f -name "*.yaml" -exec \
-        sed -i 's|account_address:.*|account_address: '$pool_address'|g' {} \;
-}
-
-function fn__init {
-    fn__build_binaries || exit 10
-    fn__build_framefork || exit 20
-    fn__validators_keys || exit 30
-    fn__genesis || exit 40
-
-    echo 'Node config:'
-    for ((i = 1; i <= ${NODE_COUNT}; i++)); do
-        fn__validator_config $i || exit 50
-        echo ' * #'$i 'Success'
-    done
-
-    cd ${NODE_DIR}/v1/
-
-    ${APTOS_NODE_BIN} --config validator.yaml &
-    node_pid=$!
-
-    node_url=http://localhost:8080
-    curl $node_url --head -X GET \
-        --retry-connrefused \
-        --retry 30 \
-        --retry-delay 1 &>/dev/null
-
-    for ((i = 1; i <= ${NODE_COUNT}; i++)); do
-        fn__set_pool_address ${NODE_DIR}/v$i
-    done
-
-    kill $node_pid
-    rm -rf data_validator
-
-    cd -
-
-    echo '= = = end = = ='
-}
-
-function fn__clear {
-    rm -rf v1 v2 v3 v4 v5 genesis
+        sed -i 's|^account_address:.*|account_address: '$pool_address'|g' {} \;
 }
 
 function fn__generate_seeds {
@@ -519,12 +439,61 @@ function fn__generate_seeds {
 
     case $1 in
     validators) echo "$seeds_validator" ;;
-    fullnode) echo "$seeds_fullnode" ;;
+    fullnodes) echo "$seeds_fullnode" ;;
     *)
         echo "$1 is not an option"
         exit 1
         ;;
     esac
+}
+
+function fn__init {
+    fn__build_binaries || exit 10
+    fn__build_framefork || exit 20
+    fn__validators_keys || exit 30
+    fn__genesis || exit 40
+
+    echo 'Node config:'
+    for ((i = 1; i <= ${NODE_COUNT}; i++)); do
+        fn__validator_config $i || exit 50
+        echo ' * #'$i 'Success'
+    done
+
+    cd ${NODE_DIR}/v1/
+
+    ${APTOS_NODE_BIN} --config validator.yaml &>/dev/null &
+    node_pid=$!
+
+    cd -
+
+    node_url=http://localhost:8080
+    curl $node_url --head -X GET \
+        --retry-connrefused \
+        --retry 30 \
+        --retry-delay 1 &>/dev/null
+
+    for ((i = 1; i <= ${NODE_COUNT}; i++)); do
+        echo "#$i set pool address"
+        fn__set_pool_address ${NODE_DIR}/v$i
+    done
+
+    validators_seeds=$(fn__generate_seeds validators)
+    fullnode_seeds=$(fn__generate_seeds fullnodes)
+
+    kill $node_pid || exit 60
+
+    rm -rf ${NODE_DIR}/v1/data
+
+    echo 'Set seeds:'
+    for path in $(find ${NODE_DIR} -type f -name 'vfn.yaml' -or -name 'validator.yaml'); do
+        source=$(cat $path)
+        source="${source//VALIDATOR_SEEDS_LIST/"${validators_seeds}"}"
+        source="${source//FULLNODE_SEEDS_LIST/"${fullnode_seeds}"}"
+        echo "$source" >$path
+    done
+    echo "* success"
+
+    echo '= = = end = = ='
 }
 
 function fn__vfn {
@@ -638,17 +607,18 @@ function fn__vfn {
     echo '* waypoint_path: '$waypoint_path
 
     echo 'Configs:'
-
     mkdir -p config
 
     seeds_validator=$(fn__generate_seeds validators)
 
     validator_config=${VFN_CONFIG}
     validator_config="${validator_config//GENESIS_DIR/"${GENESIS_DIR}"}"
-    validator_config="${validator_config//FULL_NODE_NETWORKS_PORT/"$fport"}"
-    validator_config="${validator_config//SEEDS_LIST/"$seeds_validator"}"
-    echo "$validator_config" >config/validator.yaml
-    echo '* config/validator.yaml has been generated'
+    validator_config="${validator_config//VALIDATOR_NETWORK_PORT/"$vport"}"
+    validator_config="${validator_config//FULLNODE_NETWORK_PORT/"$fport"}"
+    validator_config="${validator_config//VALIDATOR_SEEDS_LIST/"$seeds_validator"}"
+    validator_config="${validator_config//API_PORT/18080}"
+    echo "$validator_config" >config/vfn.yaml
+    echo '* config/vfn.yaml has been generated'
 
     cd -
 }
@@ -855,14 +825,15 @@ fn__necessary_programs
 case $1 in
 init) fn__init ;;
 run) process-compose -p 8070 ;;
+stop) pkill 'process-compose' -9 ;;
 vfn) fn__vfn ;;
 vfn_run)
     cd node/vfn
-    ${APTOS_NODE_BIN} --config config/validator.yaml
+    ${APTOS_NODE_BIN} --config config/vfn.yaml
     ;;
 pfn) fn__pfn ;;
-clear) rm -rf additional_accounts genesis node vfn ;;
-clear_data) find ./ -type d -name data_validator -exec rm -rf {} \; ;;
+clear) rm -rf additional_accounts genesis node ;;
+clear_data) find ./ -type d -name data -exec rm -rf {} \; ;;
 *) echo "$1 is not an option" ;;
 esac
 
@@ -870,6 +841,5 @@ esac
 # ./script.sh run
 # ./script.sh vfn
 # ./script.sh clear
-# pkill -9 process-compose
 
 # bin/aptos genesis generate-genesis --local-repository-dir /home/vmm/projects/pontem/run_aptos/genesis --output-dir /home/vmm/projects/pontem/run_aptos/genesis --mainnet --assume-yes

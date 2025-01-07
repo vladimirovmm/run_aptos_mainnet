@@ -1,25 +1,50 @@
 processes:
   # v1
-  V1-Run:
+  N1-Run:
     description: Run \#1 validator`
     command: cd node/v1; ../../bin/aptos-node --config validator.yaml
 
   # v2
-  V2-Run:
+  N2-Run:
     description: Run \#2 validator`
     command: cd node/v2; ../../bin/aptos-node --config validator.yaml
 
   # v3
-  V3-Run:
+  N3-Run:
     description: Run \#3 validator`
     command: cd node/v3; ../../bin/aptos-node --config validator.yaml
 
   # v4
-  V4-Run:
+  N4-Run:
     description: Run \#4 validator`
     command: cd node/v4; ../../bin/aptos-node --config validator.yaml
 
-  # v5
-  V5-Run:
+  # 5
+  N5-Run:
     description: Run \#5 validator`
     command: cd node/v5; ../../bin/aptos-node --config validator.yaml
+
+  # 6
+  VFN-N6-Run:
+    description: Run \#6 VFN`
+    command: cd node/v6; ../../bin/aptos-node --config vfn.yaml
+
+  # v7
+  # FULLNODE-V7-Run:
+  #   description: Run \#7 validator`
+  #   command: cd node/v7; ../../bin/aptos-node --config fullnode.yaml
+
+  # # v8
+  # FULLNODE-V8-Run:
+  #   description: Run \#8 validator`
+  #   command: cd node/v8; ../../bin/aptos-node --config fullnode.yaml
+
+  # # v9
+  # FULLNODE-V9-Run:
+  #   description: Run \#9 validator`
+  #   command: cd node/v9; ../../bin/aptos-node --config fullnode.yaml
+
+  # # v10
+  # FULLNODE-V10-Run:
+  #   description: Run \#10 validator`
+  #   command: cd node/v10; ../../bin/aptos-node --config fullnode.yaml
