@@ -19,54 +19,58 @@ APTOS_NODE_BIN_NAME='aptos-node'
 APTOS_NODE_BIN=${BIN_DIR}/${APTOS_NODE_BIN_NAME}
 
 VALIDATOR_CONFIG='base:
-  data_dir: "data"
-  role: "validator"
-  waypoint:
-    from_file: "GENESIS_DIR/waypoint.txt"
+    data_dir: "./data"
+    role: "validator"
+    waypoint:
+        from_file: "GENESIS_DIR/waypoint.txt"
 
 consensus:
-  safety_rules:
-    service:
-      type: "local"
-    backend:
-      type: "on_disk_storage"
-      path: "secure-data.json"
-      namespace: ~
-    initial_safety_rules_config:
-      from_file:
-        waypoint:
-          from_file: "GENESIS_DIR/waypoint.txt"
-        identity_blob_path: "keys/validator-identity.yaml"
-
+    safety_rules:
+        service:
+            type: "local"
+        backend:
+            type: "on_disk_storage"
+            path: "secure-data.json"
+            namespace: ~
+        initial_safety_rules_config:
+            from_file:
+                waypoint:
+                    from_file: "GENESIS_DIR/waypoint.txt"
+                identity_blob_path: "keys/validator-identity.yaml"
 execution:
-  genesis_file_location: "GENESIS_DIR/genesis.blob"
+    genesis_file_location: "GENESIS_DIR/genesis.blob"
 
 validator_network:
-  discovery_method: "onchain"
-  listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
-  identity:
-    type: "from_file"
-    path: "keys/validator-identity.yaml"
-  network_id: "validator"
-  mutual_authentication: true
-  max_frame_size: 4194304 # 4 MiB
+    discovery_method: "onchain"
+    listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
+    identity:
+        type: "from_file"
+        path: "keys/validator-identity.yaml"
+    network_id: "validator"
+    mutual_authentication: true
+    max_frame_size: 4194304 # 4 MiB
 
 storage:
-  backup_service_address: "0.0.0.0:0"
-  rocksdb_configs:
-    enable_storage_sharding: false
+    backup_service_address: "0.0.0.0:0"
+    rocksdb_configs:
+        enable_storage_sharding: false
+
 api:
-  enabled: true
-  address: "0.0.0.0:API_PORT"
+    enabled: true
+    address: "0.0.0.0:API_PORT"
+
 state_sync:
-  state_sync_driver:
-    enable_auto_bootstrapping: true
-    bootstrapping_mode: "ApplyTransactionOutputsFromGenesis"
+    state_sync_driver:
+        enable_auto_bootstrapping: true
+        bootstrapping_mode: "ApplyTransactionOutputsFromGenesis"
+
 admin_service:
-  enabled: false
-  port: 0
+    enabled: false
+    port: 0
+
 inspection_service:
-  port: 0'
+    port: 0
+'
 
 # wget -O config/validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
 VFN_CONFIG='base:
@@ -113,23 +117,28 @@ storage:
     backup_service_address: "0.0.0.0:0"
     rocksdb_configs:
         enable_storage_sharding: false
+
 api:
     enabled: true
     address: "0.0.0.0:API_PORT"
+
 state_sync:
     state_sync_driver:
         enable_auto_bootstrapping: true
         bootstrapping_mode: "ApplyTransactionOutputsFromGenesis"
+
 admin_service:
     enabled: false
     port: 0
+
 inspection_service:
     port: 0
 '
 
+# wget -O config/fullnode.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/fullnode.yaml
 PFN_CONFIG='base:
     role: "full_node"
-    data_dir: "./data"
+    data_dir: "data"
     waypoint:
         from_file: "GENESIS_DIR/waypoint.txt"
 
@@ -143,20 +152,23 @@ storage:
 full_node_networks:
     - network_id:
           private: "vfn"
-      listen_address: "/ip4/0.0.0.0/tcp/VFN_PORT"
-      seeds: VALIDATOR_SEEDS_LIST
+      listen_address: "/ip4/0.0.0.0/tcp/6181"
+      seeds:
+          00000000000000000000000000000000d58bc7bb154b38039bc9096ce04e1237:
+              addresses:
+                  - "/ip4/<Validator IP Address>/tcp/6181/noise-ik/f0274c2774519281a8332d0bb9d8101bd58bc7bb154b38039bc9096ce04e1237/handshake/0"
+              role: "Validator"
 
     - network_id: "public"
       discovery_method: "onchain"
-      listen_address: "/ip4/0.0.0.0/tcp/PUBLIC_PORT"
+      listen_address: "/ip4/0.0.0.0/tcp/6182"
       identity:
           type: "from_file"
-          path: "./keys/validator-full-node-identity.yaml"
-      seeds: FULLNODE_SEEDS_LIST
+          path: "keys/validator-full-node-identity.yaml"
+
 api:
     enabled: true
-    address: "0.0.0.0:18081"
-'
+    address: "0.0.0.0:8080"'
 
 function fn__necessary_programs {
     echo "Checking for the existence of the necessary programs:"
@@ -682,8 +694,6 @@ function fn__pfn {
               role: ValidatorFullNode"
     done
     echo '* seeds config has been genirated'
-
-    # wget -O config/fullnode.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/fullnode.yaml
 
     validator_config=${PFN_CONFIG}
 
