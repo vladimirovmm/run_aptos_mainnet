@@ -114,7 +114,7 @@
         {
             "label": "pfn: run",
             "type": "shell",
-            "command": "cd pfn; ../bin/aptos-node --config config/fullnode.yaml",
+            "command": "rm -rf node/pfn/data; ./script.sh pfn_run",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -125,6 +125,26 @@
             "label": "show-validator",
             "type": "shell",
             "command": "aptos node show-validator-set --url http://localhost:8080",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "[1] run",
+            "type": "shell",
+            "command": "cd node/v1; rm -rf data; /home/vmm/projects/pontem/run_aptos/bin/aptos-node --config configs/validator.yaml",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "[6] run",
+            "type": "shell",
+            "command": "cd node/v6; rm -rf data; /home/vmm/projects/pontem/run_aptos/bin/aptos-node --config configs/fullnode.yaml",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
