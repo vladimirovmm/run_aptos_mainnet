@@ -15,15 +15,21 @@ APTOS_SOURCE=<PATH/TO/SOURCE/APTOS-CORE>  ./script.sh init
 ./script.sh run
 ```
 
-# Динамическое добавление VFN ноды
+# Динамическое добавление VFN ноды (Регистрация нового валидатора)
 
-## Инициализация VFN
+## Инициализация VFN 
 
 ```bash
 ./script.sh vfn
 ```
 
 ## Запуск VFN
+
+> ВНИМАНИЕ: Новая нода начнёт работать только со следующей эпохи
+> Проверить статус ноды можено командой
+> ```bash
+> aptos node show-validator-set --url http://localhost:8080
+> ```
 
 ```bash
 ./script.sh vfn_run
