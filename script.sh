@@ -73,7 +73,7 @@ inspection_service:
 '
 
 # wget -O config/validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
-PRIVATE_VFN_CONFIG='base:
+VFN_CONFIG='base:
     role: "validator"
     data_dir: "./data"
     waypoint:
@@ -417,7 +417,7 @@ function fn__validator_config {
 
     declare -A configs
     configs[validator_config]=${VALIDATOR_CONFIG}
-    configs[vfn_config]=${PRIVATE_VFN_CONFIG}
+    configs[vfn_config]=${VFN_CONFIG}
     configs[pfn_config]=${PFN_CONFIG}
 
     for var_name in validator_config vfn_config pfn_config; do
@@ -652,7 +652,7 @@ function fn__vfn {
 
     seeds_validator=$(fn__generate_seeds validators)
 
-    validator_config=${PRIVATE_VFN_CONFIG}
+    validator_config=${VFN_CONFIG}
     validator_config="${validator_config//GENESIS_DIR/"${GENESIS_DIR}"}"
     validator_config="${validator_config//VALIDATOR_NETWORK_PORT/"$vport"}"
     validator_config="${validator_config//FULLNODE_NETWORK_PORT/"$fport"}"
