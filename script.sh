@@ -10,7 +10,7 @@ NODE_COUNT=7
 NODE_BALANCE=100000000000000000
 MIN_AMOUNT=100000000000000
 ADDITIONAL_ACCOUNTS=10
-ADDITIONAL_ACCOUNT_BALNACE=100000000000000000
+ADDITIONAL_ACCOUNT_BALANCE=100000000000000000
 ADDITIONAL_ACCOUNTS_DIR=${ROOT_DIR}/additional_accounts
 
 APTOS_BIN_NAME='aptos'
@@ -223,13 +223,13 @@ function fn__build_binaries {
     cd -
 }
 
-function fn__build_framefork {
-    echo 'Building framefork'
+function fn__build_framework {
+    echo 'Building framework'
 
-    framefork_path=${GENESIS_DIR}/framework.mrb
+    framework_path=${GENESIS_DIR}/framework.mrb
 
-    if [ -f ${framefork_path} ]; then
-        echo '*' ${framefork_path} 'exist'
+    if [ -f ${framework_path} ]; then
+        echo '*' ${framework_path} 'exist'
         return
     fi
 
@@ -239,7 +239,7 @@ function fn__build_framefork {
     cargo run --package aptos-framework -- release --target mainnet || 21
     cd -
 
-    mv ${APTOS_SOURCE}/mainnet.mrb $framefork_path || 22
+    mv ${APTOS_SOURCE}/mainnet.mrb $framework_path || 22
 }
 
 function fn__generate_key {
@@ -373,7 +373,7 @@ function fn__genesis {
         done
         for file in $(find ${ADDITIONAL_ACCOUNTS_DIR} -name *.address -type f); do
             address=$(cat $file)
-            echo '-' $address': '${ADDITIONAL_ACCOUNT_BALNACE} >>$balances_path
+            echo '-' $address': '${ADDITIONAL_ACCOUNT_BALANCE} >>$balances_path
         done
 
         echo '* `'$balances_path'` has been created'
@@ -397,7 +397,7 @@ function fn__genesis {
 
     sed -i 's/allow_new_validators: false/allow_new_validators: true/g' $layout_path
     sed -i 's/is_test: true/is_test: false/g' $layout_path
-    let total_supply=${NODE_COUNT}*3*${NODE_BALANCE}+${ADDITIONAL_ACCOUNTS}*${ADDITIONAL_ACCOUNT_BALNACE}
+    let total_supply=${NODE_COUNT}*3*${NODE_BALANCE}+${ADDITIONAL_ACCOUNTS}*${ADDITIONAL_ACCOUNT_BALANCE}
     sed -i 's/total_supply: ~/total_supply: '$total_supply'/g' $layout_path
     # @todo
     sed -i 's/epoch_duration_secs:.*/epoch_duration_secs: 120/g' $layout_path
@@ -484,7 +484,7 @@ function fn__generate_seeds {
 
 function fn__init {
     fn__build_binaries || exit 10
-    fn__build_framefork || exit 20
+    fn__build_framework || exit 20
     fn__validators_keys || exit 30
     fn__genesis || exit 40
 
@@ -579,7 +579,7 @@ function fn__vfn {
     echo '* Operator address: '$operator_address
     echo '* Voter address: '$voter_address
 
-    echo 'Checking the onwer balance:'
+    echo 'Checking the owner balance:'
     balance=$(${APTOS_BIN} account balance --profile mainnet-owner | jq .Result[0].balance) || exit 2
     if [ $balance -lt ${MIN_AMOUNT} ]; then
         echo 'Error: Insufficient balance '$balance
@@ -598,7 +598,7 @@ function fn__vfn {
             --amount ${MIN_AMOUNT} \
             --profile mainnet-owner \
             --assume-yes || exit 4
-        echo '* The operator`s '$operator_addresss' balance has been replenished' ${MIN_AMOUNT}
+        echo '* The operator`s '$operator_address' balance has been replenished' ${MIN_AMOUNT}
     else
         echo '* Operator balance: '$balance
     fi
@@ -641,7 +641,7 @@ function fn__vfn {
         echo '* account_address has been updated in '$path
     done
 
-    echo 'Gensesis:'
+    echo 'Genesis:'
     genesis_path=${GENESIS_DIR}/genesis.blob
     waypoint_path=${GENESIS_DIR}/waypoint.txt
     echo '* genesis_path: '$genesis_path
@@ -670,7 +670,7 @@ function fn__pfn {
     mkdir -p pfn
     cd pfn
 
-    echo 'Gensesis:'
+    echo 'Genesis:'
     genesis_path=${GENESIS_DIR}/genesis.blob
     waypoint_path=${GENESIS_DIR}/waypoint.txt
     echo '* genesis_path: '$genesis_path
@@ -722,7 +722,7 @@ function fn__pfn {
                   - $fullnode_network_addresses
               role: ValidatorFullNode"
     done
-    echo '* seeds config has been genirated'
+    echo '* seeds config has been generated'
 
     validator_config=${PFN_CONFIG}
 
@@ -790,7 +790,7 @@ function fn__pfn {
     echo '* Operator address: '$operator_address
     echo '* Voter address: '$voter_address
 
-    echo 'Checking the onwer balance:'
+    echo 'Checking the owner balance:'
     balance=$(${APTOS_BIN} account balance --profile mainnet-owner | jq .Result[0].balance)
     if [ $balance -lt ${MIN_AMOUNT} ]; then
         echo 'Error: Insufficient balance '$balance
@@ -809,7 +809,7 @@ function fn__pfn {
             --amount ${MIN_AMOUNT} \
             --profile mainnet-owner \
             --assume-yes || exit 32
-        echo '* The operator`s '$operator_addresss' balance has been replenished' ${MIN_AMOUNT}
+        echo '* The operator`s '$operator_address' balance has been replenished' ${MIN_AMOUNT}
     else
         echo '* Operator balance: '$balance
     fi
@@ -881,4 +881,4 @@ esac
 # ./script.sh vfn
 # ./script.sh clear
 
-# bin/aptos genesis generate-genesis --local-repository-dir /home/vmm/projects/pontem/run_aptos/genesis --output-dir /home/vmm/projects/pontem/run_aptos/genesis --mainnet --assume-yes
+# bin/aptos genesis generate-genesis --local-repository-dir <PATH/TO>/run_aptos/genesis --output-dir <PATH/TO>/run_aptos/genesis --mainnet --assume-yes

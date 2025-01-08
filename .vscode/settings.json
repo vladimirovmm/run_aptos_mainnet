@@ -1,3 +1,14 @@
 {
-    "explorer.excludeGitIgnore": false
+    "explorer.excludeGitIgnore": false,
+    "cSpell.words": [
+        "connrefused",
+        "fpath",
+        "fport",
+        "fullnodes",
+        "realpath",
+        "rocksdb",
+        "SFULLNODE",
+        "SVALIDATOR",
+        "vport"
+    ]
 }
