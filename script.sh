@@ -658,6 +658,8 @@ function fn__vfn {
     validator_config="${validator_config//FULLNODE_NETWORK_PORT/"$fport"}"
     validator_config="${validator_config//VALIDATOR_SEEDS_LIST/"$seeds_validator"}"
     validator_config="${validator_config//API_PORT/18080}"
+    validator_config="${validator_config//NETWORK_ID_TYPE/
+        private: \"vfn\"}"
     echo "$validator_config" >config/private_vfn.yaml
     echo '* config/private_vfn.yaml has been generated'
 
@@ -667,7 +669,12 @@ function fn__vfn {
 function fn__pfn {
     echo 'PFN'
 
-    mkdir -p pfn
+    node_path=${NODE_DIR}/pfn
+    mkdir -p $node_path
+    cd $node_path
+
+    exit 111
+
     cd pfn
 
     echo 'Genesis:'
@@ -870,7 +877,7 @@ clear_data) find ./ -type d -name data -exec rm -rf {} \; ;;
 vfn) fn__vfn ;;
 vfn_run)
     cd node/vfn
-    ${APTOS_NODE_BIN} --config config/vfn.yaml
+    ${APTOS_NODE_BIN} --config config/private_vfn.yaml
     ;;
 pfn) fn__pfn ;;
 *) echo "$1 is not an option" ;;
