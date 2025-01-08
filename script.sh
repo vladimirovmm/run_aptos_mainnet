@@ -865,14 +865,14 @@ case $1 in
 init) fn__init ;;
 run) process-compose -p 8070 ;;
 stop) pkill 'process-compose' -9 ;;
+clear) rm -rf additional_accounts genesis node ;;
+clear_data) find ./ -type d -name data -exec rm -rf {} \; ;;
 vfn) fn__vfn ;;
 vfn_run)
     cd node/vfn
     ${APTOS_NODE_BIN} --config config/vfn.yaml
     ;;
 pfn) fn__pfn ;;
-clear) rm -rf additional_accounts genesis node ;;
-clear_data) find ./ -type d -name data -exec rm -rf {} \; ;;
 *) echo "$1 is not an option" ;;
 esac
 

@@ -22,9 +22,9 @@
             }
         },
         {
-            "label": "vfn_v6: run",
+            "label": "validators: run",
             "type": "shell",
-            "command": "make v6_vfn",
+            "command": "./script.sh run",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -32,9 +32,9 @@
             }
         },
         {
-            "label": "pfn_v3: run",
+            "label": "validators: stop",
             "type": "shell",
-            "command": "make v3_pfn",
+            "command": "./script.sh stop",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -55,16 +55,6 @@
             "label": "validators: clear data",
             "type": "shell",
             "command": "./script.sh clear_data",
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "process-compose: run",
-            "type": "shell",
-            "command": "process-compose -p 8070",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
