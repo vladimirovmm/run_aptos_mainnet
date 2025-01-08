@@ -1,36 +1,21 @@
 processes:
   VALIDATOR-1:
-    command: cd node/v1; ../../bin/aptos-node --config validator.yaml
+    command: cd node/v1; ../../bin/aptos-node --config configs/validator.yaml
 
   PRIVATE-VFN-2:
-    command: cd node/v2; ../../bin/aptos-node --config private_vfn.yaml
+    command: cd node/v2; ../../bin/aptos-node --config configs/private_vfn.yaml
 
   PFN-3:
-    command: cd node/v3; ../../bin/aptos-node --config pfn.yaml
+    command: cd node/v3; ../../bin/aptos-node --config configs/pfn.yaml
 
   PUBLIC-VFN-4:
-    command: cd node/v4; ../../bin/aptos-node --config public_vfn.yaml
+    command: cd node/v4; ../../bin/aptos-node --config configs/public_vfn.yaml
 
   PUBLIC-VFN-5:
-    command: cd node/v5; ../../bin/aptos-node --config public_vfn.yaml
+    command: cd node/v5; ../../bin/aptos-node --config configs/public_vfn.yaml
 
   PUBLIC-VFN-6:
-    command: cd node/v6; ../../bin/aptos-node --config public_vfn.yaml
+    command: cd node/v6; ../../bin/aptos-node --config configs/public_vfn.yaml
 
   PUBLIC-VFN-7:
-    command: cd node/v7; ../../bin/aptos-node --config public_vfn.yaml
-
-  # # v8
-  # FULLNODE-V8-Run:
-  #   description: Run \#8 validator`
-  #   command: cd node/v8; ../../bin/aptos-node --config fullnode.yaml
-
-  # # v9
-  # FULLNODE-V9-Run:
-  #   description: Run \#9 validator`
-  #   command: cd node/v9; ../../bin/aptos-node --config fullnode.yaml
-
-  # # v10
-  # FULLNODE-V10-Run:
-  #   description: Run \#10 validator`
-  #   command: cd node/v10; ../../bin/aptos-node --config fullnode.yaml
+    command: cd node/v7; ../../bin/aptos-node --config configs/public_vfn.yaml

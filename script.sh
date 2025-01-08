@@ -105,8 +105,7 @@ validator_network:
     listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
 
 full_node_networks:
-    - network_id:
-        private: "vfn"
+    - network_id: NETWORK_ID_TYPE
       discovery_method: "onchain"
       listen_address: "/ip4/0.0.0.0/tcp/FULLNODE_NETWORK_PORT"
       identity:
@@ -162,7 +161,6 @@ full_node_networks:
           type: "from_file"
           path: "keys/validator-identity.yaml"
       seeds: FULLNODE_SEEDS_LIST
-
 
 storage:
     backup_service_address: "0.0.0.0:0"
@@ -419,26 +417,27 @@ function fn__validator_config {
 
     declare -A configs
     configs[validator_config]=${VALIDATOR_CONFIG}
-    configs[private_vfn_config]=${PRIVATE_VFN_CONFIG}
+    configs[vfn_config]=${PRIVATE_VFN_CONFIG}
     configs[pfn_config]=${PFN_CONFIG}
 
-    for var_name in validator_config private_vfn_config pfn_config; do
-        config="${configs[$var_name]}"
-        config="${config//GENESIS_DIR/"${GENESIS_DIR}"}"
+    for var_name in validator_config vfn_config pfn_config; do
+        config="${configs[$var_name]//GENESIS_DIR/"${GENESIS_DIR}"}"
         config="${config//API_PORT/"$api_port"}"
         config="${config//VALIDATOR_NETWORK_PORT/"$vport"}"
-        config="${config//FULLNODE_NETWORK_PORT/"$fport"}"
-        configs[$var_name]="$config"
+        configs[$var_name]="${config//FULLNODE_NETWORK_PORT/"$fport"}"
     done
 
-    public_vfn_config="${configs[private_vfn_config]}"
-    public_vfn_config="${public_vfn_config//private: \"vfn\"/}"
-    public_vfn_config="${public_vfn_config//- network_id:/- network_id: \"public\"}"
+    private_vfn_config="${configs[vfn_config]//NETWORK_ID_TYPE/
+        private: \"vfn\"}"
+    public_vfn_config="${configs[vfn_config]//NETWORK_ID_TYPE/\"public\"}"
 
-    echo "${configs[validator_config]}" >${NODE_DIR}/v$1/validator.yaml
-    echo "${configs[private_vfn_config]}" >${NODE_DIR}/v$1/private_vfn.yaml
-    echo "$public_vfn_config" >${NODE_DIR}/v$1/public_vfn.yaml
-    echo "${configs[pfn_config]}" >${NODE_DIR}/v$1/pfn.yaml
+    configs_path=${NODE_DIR}/v$1/configs
+    mkdir -p $configs_path
+
+    echo "${configs[validator_config]}" >$configs_path/validator.yaml
+    echo "$private_vfn_config" >$configs_path/private_vfn.yaml
+    echo "$public_vfn_config" >$configs_path/public_vfn.yaml
+    echo "${configs[pfn_config]}" >$configs_path/pfn.yaml
 }
 
 function fn__set_pool_address {
@@ -497,7 +496,7 @@ function fn__init {
 
     cd ${NODE_DIR}/v1/
 
-    ${APTOS_NODE_BIN} --config validator.yaml &>/dev/null &
+    ${APTOS_NODE_BIN} --config configs/validator.yaml &>/dev/null &
     node_pid=$!
 
     cd -
@@ -513,7 +512,7 @@ function fn__init {
         fn__set_pool_address ${NODE_DIR}/v$i
     done
 
-    validators_seeds=$(fn__generate_seeds validators)
+    validator_seeds=$(fn__generate_seeds validators)
     fullnode_seeds=$(fn__generate_seeds fullnodes)
 
     kill $node_pid || exit 60
@@ -521,9 +520,15 @@ function fn__init {
     rm -rf ${NODE_DIR}/v1/data
 
     echo 'Set seeds:'
-    for path in $(find ${NODE_DIR} -type f -name 'validator.yaml' -or -name 'private_vfn.yaml' -or -name 'public_vfn.yaml' -or -name 'pfn.yaml'); do
+    for path in $(
+        find ${NODE_DIR} -type f \
+            -name 'validator.yaml' -or \
+            -name 'private_vfn.yaml' -or \
+            -name 'public_vfn.yaml' -or \
+            -name 'pfn.yaml'
+    ); do
         source=$(cat $path)
-        source="${source//VALIDATOR_SEEDS_LIST/"${validators_seeds}"}"
+        source="${source//VALIDATOR_SEEDS_LIST/"${validator_seeds}"}"
         source="${source//FULLNODE_SEEDS_LIST/"${fullnode_seeds}"}"
         echo "$source" >$path
     done
