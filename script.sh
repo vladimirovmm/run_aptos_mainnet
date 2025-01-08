@@ -275,7 +275,7 @@ function fn__generating_keys_for_node {
         for fpath in $(find $node_path -type f -name '*.yaml'); do
             sed -i 's/'$tp'_account_address:.*/'$tp'_account_address: '$account_address'/g' $fpath
             sed -i 's/'$tp'_account_public_key:.*/'$tp'_account_public_key: '$public_key'/g' $fpath
-            sed -i 's/'$tp'_account_private_key:.*/'$tp'_account_public_key: '$public_key'/g' $fpath
+            sed -i 's/'$tp'_account_private_key:.*/'$tp'_account_private_key: '$public_key'/g' $fpath
             sed -i 's/'$tp'_network_public_key:.*/'$tp'_network_public_key: '$public_key'/g' $fpath
         done
     done
@@ -294,8 +294,8 @@ function fn__validators_keys {
     for ((i = 1; i <= ${NODE_COUNT}; i++)); do
         node_path=${NODE_DIR}/v$i
 
-        let vport=${SVALIDATOR_PORT}+$i
-        let fport=${SFULLNODE_PORT}+$i
+        let validator_port=${SVALIDATOR_PORT}+$i
+        let fullnode_port=${SFULLNODE_PORT}+$i
 
         fn__generating_keys_for_node $node_path $validator_port $fullnode_port || exit 31
     done
@@ -372,7 +372,7 @@ function fn__genesis {
     let total_supply=${NODE_COUNT}*3*${NODE_BALANCE}+${ADDITIONAL_ACCOUNTS}*${ADDITIONAL_ACCOUNT_BALANCE}
     sed -i 's/total_supply: ~/total_supply: '$total_supply'/g' $layout_path
     # @todo
-    sed -i 's/epoch_duration_secs:.*/epoch_duration_secs: 120/g' $layout_path
+    # sed -i 's/epoch_duration_secs:.*/epoch_duration_secs: 120/g' $layout_path
     echo '* `'$layout_path'` has been created'
 
     ${APTOS_BIN} genesis generate-genesis \
@@ -383,8 +383,8 @@ function fn__genesis {
 }
 
 function fn__validator_config {
-    let vport=${SVALIDATOR_PORT}+$1
-    let fport=${SFULLNODE_PORT}+$i
+    let validator_port=${SVALIDATOR_PORT}+$1
+    let fullnode_port=${SFULLNODE_PORT}+$i
     let public_port=${SPUBLIC_PORT}+$i
     let api_port=8079+$1
 
