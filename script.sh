@@ -232,8 +232,8 @@ function fn__generate_key {
 
 function fn__generating_keys_for_node {
     node_path=$1
-    vport=$2
-    fport=$3
+    validator_port=$2
+    fullnode_port=$3
 
     echo '['$node_path'] Generating a configuration file with keys:'
     if [ ! -f $node_path/keys/public-keys.yaml ]; then
@@ -249,8 +249,8 @@ function fn__generating_keys_for_node {
             --local-repository-dir $node_path/keys \
             --owner-public-identity-file $node_path/keys/public-keys.yaml \
             --username validator \
-            --validator-host 0.0.0.0:$vport \
-            --full-node-host 0.0.0.0:$fport \
+            --validator-host 0.0.0.0:$validator_port \
+            --full-node-host 0.0.0.0:$fullnode_port \
             --stake-amount ${MIN_AMOUNT} \
             --join-during-genesis || exec 34 # `--join-during-genesis`:  - A required parameter when generating genesis
         echo '* '$node_path'/keys/validator has been generated'
@@ -284,8 +284,8 @@ function fn__generating_keys_for_node {
     echo '* Owner address: '$(cat $important_keys/owner.address)
     echo '* Operator address: '$(cat $important_keys/operator.address)
     echo '* Voter address: '$(cat $important_keys/voter.address)
-    echo '* Validator port: '$vport
-    echo '* Fullnode port: '$fport
+    echo '* Validator port: '$validator_port
+    echo '* Fullnode port: '$fullnode_port
 }
 
 function fn__validators_keys {
@@ -297,7 +297,7 @@ function fn__validators_keys {
         let vport=${SVALIDATOR_PORT}+$i
         let fport=${SFULLNODE_PORT}+$i
 
-        fn__generating_keys_for_node $node_path $vport $fport || exit 31
+        fn__generating_keys_for_node $node_path $validator_port $fullnode_port || exit 31
     done
 
     echo 'Additional accounts:'
@@ -372,7 +372,7 @@ function fn__genesis {
     let total_supply=${NODE_COUNT}*3*${NODE_BALANCE}+${ADDITIONAL_ACCOUNTS}*${ADDITIONAL_ACCOUNT_BALANCE}
     sed -i 's/total_supply: ~/total_supply: '$total_supply'/g' $layout_path
     # @todo
-    # sed -i 's/epoch_duration_secs:.*/epoch_duration_secs: 120/g' $layout_path
+    sed -i 's/epoch_duration_secs:.*/epoch_duration_secs: 120/g' $layout_path
     echo '* `'$layout_path'` has been created'
 
     ${APTOS_BIN} genesis generate-genesis \
@@ -396,8 +396,8 @@ function fn__validator_config {
         config="${configs[$var_name]//GENESIS_DIR/"${GENESIS_DIR}"}"
         config="${config//API_PORT/"$api_port"}"
         config="${config//PUBLIC_PORT/"$public_port"}"
-        config="${config//VALIDATOR_NETWORK_PORT/"$vport"}"
-        configs[$var_name]="${config//FULLNODE_NETWORK_PORT/"$fport"}"
+        config="${config//VALIDATOR_NETWORK_PORT/"$validator_port"}"
+        configs[$var_name]="${config//FULLNODE_NETWORK_PORT/"$fullnode_port"}"
     done
 
     configs_path=${NODE_DIR}/v$1/configs
@@ -518,8 +518,10 @@ function fn__init {
 function fn__vfn {
     echo 'VFN'
 
-    vport=10301
-    fport=10302
+    validator_port=10301
+    fullnode_port=10302
+    public_port=10303
+
     node_path=${NODE_DIR}/vfn
     owner_dir=$node_path/keys/important
     owner_path=$owner_dir/owner
@@ -531,7 +533,7 @@ function fn__vfn {
     cp $source_key.pub $owner_path.pub
     cp $source_key.address $owner_path.address
 
-    fn__generating_keys_for_node $node_path $vport $fport || exit 1
+    fn__generating_keys_for_node $node_path $validator_port $fullnode_port || exit 1
 
     cd $node_path
 
@@ -629,17 +631,16 @@ function fn__vfn {
 
     validator_seeds=$(fn__generate_seeds validators)
     fullnode_seeds=$(fn__generate_seeds fullnodes)
+    public_seeds=$(fn__generate_seeds publics)
 
-    config=${VALIDATOR_CONFIG}
-    config="${config//GENESIS_DIR/"${GENESIS_DIR}"}"
-    config="${config//VALIDATOR_NETWORK_PORT/"$vport"}"
-    config="${config//FULLNODE_NETWORK_PORT/"$fport"}"
+    config="${VALIDATOR_CONFIG//GENESIS_DIR/"${GENESIS_DIR}"}"
+    config="${config//VALIDATOR_NETWORK_PORT/"$validator_port"}"
+    config="${config//FULLNODE_NETWORK_PORT/"$fullnode_port"}"
+    config="${config//PUBLIC_PORT/"$public_port"}"
     config="${config//VALIDATOR_SEEDS_LIST/"$validator_seeds"}"
     config="${config//FULLNODE_SEEDS_LIST/"$fullnode_seeds"}"
-    config="${config//NETWORK_ID_TYPE/
-        private: \"vfn\"}"
-    config="${config//API_PORT/18080}"
-    echo "$config" >config/vfn.yaml
+    config="${config//PUBLIC_SEEDS_LIST/"$public_seeds"}"
+    echo "${config//API_PORT/18080}" >config/vfn.yaml
     echo '* config/vfn.yaml has been generated'
 
     cd -
