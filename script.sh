@@ -372,7 +372,7 @@ function fn__genesis {
     let total_supply=${NODE_COUNT}*3*${NODE_BALANCE}+${ADDITIONAL_ACCOUNTS}*${ADDITIONAL_ACCOUNT_BALANCE}
     sed -i 's/total_supply: ~/total_supply: '$total_supply'/g' $layout_path
     # @todo
-    sed -i 's/epoch_duration_secs:.*/epoch_duration_secs: 120/g' $layout_path
+    # sed -i 's/epoch_duration_secs:.*/epoch_duration_secs: 120/g' $layout_path
     echo '* `'$layout_path'` has been created'
 
     ${APTOS_BIN} genesis generate-genesis \
@@ -403,10 +403,7 @@ function fn__validator_config {
     configs_path=${NODE_DIR}/v$1/configs
     mkdir -p $configs_path
 
-    # @todo
-    echo "${configs[validator_config]//NETWORK_ID_TYPE/
-        private: \"vfn\"}" >$configs_path/validator.yaml
-    echo "${configs[validator_config]//NETWORK_ID_TYPE/\"public\"}" >$configs_path/public_validator.yaml
+    echo "${configs[validator_config]}" >$configs_path/validator.yaml
     echo "${configs[fullnode_config]}" >$configs_path/fullnode.yaml
 }
 
@@ -505,7 +502,6 @@ function fn__init {
     for path in $(
         find ${NODE_DIR} -type f \
             -name 'validator.yaml' -or \
-            -name 'public_validator.yaml' -or \
             -name 'fullnode.yaml'
     ); do
         source=$(cat $path)
@@ -645,135 +641,6 @@ function fn__vfn {
     config="${config//API_PORT/18080}"
     echo "$config" >config/vfn.yaml
     echo '* config/vfn.yaml has been generated'
-
-    cd -
-}
-
-function fn__pfn {
-    echo 'PFN'
-
-    vport=10303
-    fport=10304
-    node_path=${NODE_DIR}/pfn
-    mkdir -p $node_path
-
-    cd $node_path
-
-    # @todo
-    # owner_dir=$node_path/keys/important
-    # owner_path=$owner_dir/owner
-    # mkdir -p $owner_dir
-
-    # source_key=${ROOT_DIR}/additional_accounts/u2/user
-    # cp $source_key $owner_path
-    # cp $source_key.pub $owner_path.pub
-    # cp $source_key.address $owner_path.address
-
-    fn__generating_keys_for_node $node_path $vport $fport || exit 1
-
-    # important_keys=$node_path/keys/important
-
-    # echo 'Creating profiles:'
-    # for tp in 'owner' 'operator' 'voter'; do
-    #     ${APTOS_BIN} init \
-    #         --profile mainnet-$tp \
-    #         --private-key-file $important_keys/$tp \
-    #         --skip-faucet \
-    #         --network local \
-    #         --assume-yes &>/dev/null
-    # done
-
-    # owner_address=$(cat $important_keys/owner.address)
-    # operator_address=$(cat $important_keys/operator.address)
-    # voter_address=$(cat $important_keys/voter.address)
-
-    # echo 'Addresses:'
-    # echo '* Owner address: '$owner_address
-    # echo '* Operator address: '$operator_address
-    # echo '* Voter address: '$voter_address
-
-    # echo 'Checking the owner balance:'
-    # balance=$(${APTOS_BIN} account balance --profile mainnet-owner | jq .Result[0].balance) || exit 2
-    # if [ $balance -lt ${MIN_AMOUNT} ]; then
-    #     echo 'Error: Insufficient balance '$balance
-    #     exit 31
-    # else
-    #     echo '* Owner balance: '$balance
-    # fi
-
-    # echo 'Checking the operator balance:'
-    # balance=$(${APTOS_BIN} account balance --profile mainnet-operator | jq .Result[0].balance) || exit 3
-
-    # if [ $balance -lt ${MIN_AMOUNT} ]; then
-    #     echo ${MIN_AMOUNT}
-    #     ${APTOS_BIN} account transfer \
-    #         --account $operator_address \
-    #         --amount ${MIN_AMOUNT} \
-    #         --profile mainnet-owner \
-    #         --assume-yes || exit 4
-    #     echo '* The operator`s '$operator_address' balance has been replenished' ${MIN_AMOUNT}
-    # else
-    #     echo '* Operator balance: '$balance
-    # fi
-
-    # echo 'Run the following command to initialize the staking pool:'
-
-    # ${APTOS_BIN} stake create-staking-contract \
-    #     --operator $operator_address \
-    #     --voter $voter_address \
-    #     --amount 100000000000000 \
-    #     --commission-percentage 10 \
-    #     --profile mainnet-owner \
-    #     --assume-yes
-
-    # pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --profile mainnet-owner | jq .Result[0].pool_address | tr -d '"') || exit 6
-    # echo '* pool address created: '$pool_address
-
-    # echo 'Update on-chain network addresses:'
-    # ${APTOS_BIN} node update-validator-network-addresses \
-    #     --pool-address $pool_address \
-    #     --operator-config-file keys/validator/operator.yaml \
-    #     --profile mainnet-operator \
-    #     --assume-yes
-
-    # echo 'Update on-chain consensus key: '
-    # ${APTOS_BIN} node update-consensus-key \
-    #     --pool-address $pool_address \
-    #     --operator-config-file keys/validator/operator.yaml \
-    #     --profile mainnet-operator \
-    #     --assume-yes
-
-    # echo 'Join the validator set:'
-    # ${APTOS_BIN} node join-validator-set \
-    #     --pool-address $pool_address \
-    #     --profile mainnet-operator \
-    #     --assume-yes
-
-    # for path in 'keys/validator-identity.yaml' 'keys/validator-full-node-identity.yaml'; do
-    #     sed -i 's|account_address:.*|account_address: '$pool_address'|g' $path
-    #     echo '* account_address has been updated in '$path
-    # done
-
-    echo 'Genesis:'
-    genesis_path=${GENESIS_DIR}/genesis.blob
-    waypoint_path=${GENESIS_DIR}/waypoint.txt
-    echo '* genesis_path: '$genesis_path
-    echo '* waypoint_path: '$waypoint_path
-
-    echo 'Configs:'
-    mkdir -p config
-
-    validator_seeds=$(fn__generate_seeds validators)
-    fullnode_seeds=$(fn__generate_seeds fullnodes)
-
-    config="${FULLNODE_CONFIG//GENESIS_DIR/"${GENESIS_DIR}"}"
-    config="${config//VALIDATOR_NETWORK_PORT/"$vport"}"
-    config="${config//FULLNODE_NETWORK_PORT/"$fport"}"
-    config="${config//VALIDATOR_SEEDS_LIST/"$validator_seeds"}"
-    config="${config//FULLNODE_SEEDS_LIST/"$fullnode_seeds"}"
-    config="${config//API_PORT/18081}"
-    echo "$config" >config/fullnode.yaml
-    echo '* config/pfn.yaml has been generated'
 
     cd -
 }
