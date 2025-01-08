@@ -6,6 +6,7 @@ GENESIS_DIR=${ROOT_DIR}/genesis
 NODE_DIR=${ROOT_DIR}/node
 SVALIDATOR_PORT=10000
 SFULLNODE_PORT=10100
+SPUBLIC_PORT=10200
 NODE_COUNT=6
 NODE_BALANCE=100000000000000000
 MIN_AMOUNT=100000000000000
@@ -52,13 +53,22 @@ validator_network:
     listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
 
 full_node_networks:
-    - network_id: NETWORK_ID_TYPE
+    - network_id: 
+        private: "vfn"
       discovery_method: "onchain"
       listen_address: "/ip4/0.0.0.0/tcp/FULLNODE_NETWORK_PORT"
       identity:
         type: "from_file"
         path: ./keys/validator-full-node-identity.yaml
       seeds: FULLNODE_SEEDS_LIST
+
+    - network_id: "public"
+      discovery_method: "onchain"
+      listen_address: "/ip4/0.0.0.0/tcp/PUBLIC_PORT"
+      identity:
+        type: "from_file"
+        path: ./keys/validator-full-node-identity.yaml
+      seeds: PUBLIC_SEEDS_LIST
 
 storage:
     backup_service_address: "0.0.0.0:0"
@@ -113,16 +123,16 @@ full_node_networks:
       identity:
           type: "from_file"
           path: "keys/validator-identity.yaml"
-      seeds: VALIDATOR_SEEDS_LIST
+      seeds: FULLNODE_SEEDS_LIST
 
     - network_id: "public"
       discovery_method: "onchain"
-      listen_address: "/ip4/0.0.0.0/tcp/FULLNODE_NETWORK_PORT"
+      listen_address: "/ip4/0.0.0.0/tcp/PUBLIC_PORT"
       identity:
           type: "from_file"
           path: "keys/validator-full-node-identity.yaml"
     #   mutual_authentication: false
-      seeds: FULLNODE_SEEDS_LIST
+      seeds: PUBLIC_SEEDS_LIST
 
 storage:
     backup_service_address: "0.0.0.0:0"
@@ -375,6 +385,7 @@ function fn__genesis {
 function fn__validator_config {
     let vport=${SVALIDATOR_PORT}+$1
     let fport=${SFULLNODE_PORT}+$i
+    let public_port=${SPUBLIC_PORT}+$i
     let api_port=8079+$1
 
     declare -A configs
@@ -384,6 +395,7 @@ function fn__validator_config {
     for var_name in validator_config fullnode_config; do
         config="${configs[$var_name]//GENESIS_DIR/"${GENESIS_DIR}"}"
         config="${config//API_PORT/"$api_port"}"
+        config="${config//PUBLIC_PORT/"$public_port"}"
         config="${config//VALIDATOR_NETWORK_PORT/"$vport"}"
         configs[$var_name]="${config//FULLNODE_NETWORK_PORT/"$fport"}"
     done
@@ -391,6 +403,7 @@ function fn__validator_config {
     configs_path=${NODE_DIR}/v$1/configs
     mkdir -p $configs_path
 
+    # @todo
     echo "${configs[validator_config]//NETWORK_ID_TYPE/
         private: \"vfn\"}" >$configs_path/validator.yaml
     echo "${configs[validator_config]//NETWORK_ID_TYPE/\"public\"}" >$configs_path/public_validator.yaml
@@ -432,6 +445,9 @@ function fn__generate_seeds {
     case $1 in
     validators) echo "$validator_seeds" ;;
     fullnodes) echo "$seeds_fullnode" ;;
+    publics)
+        echo "${seeds_fullnode//\/ip4\/0.0.0.0\/tcp\/101/\/ip4\/0.0.0.0\/tcp\/102}"
+        ;;
     *)
         echo "$1 is not an option"
         exit 1
@@ -459,6 +475,7 @@ function fn__init {
     config_path=$node_path'/configs/validator.yaml'
     cp $config_path $config_path'.tmp'
     sed -i 's/FULLNODE_SEEDS_LIST/ {}/g' $config_path'.tmp'
+    sed -i 's/PUBLIC_SEEDS_LIST/ {}/g' $config_path'.tmp'
 
     ${APTOS_NODE_BIN} --config $config_path'.tmp' &>/dev/null &
     node_pid=$!
@@ -478,6 +495,7 @@ function fn__init {
 
     validator_seeds=$(fn__generate_seeds validators)
     fullnode_seeds=$(fn__generate_seeds fullnodes)
+    public_seeds=$(fn__generate_seeds publics)
 
     kill $node_pid || exit 60
 
@@ -493,6 +511,7 @@ function fn__init {
         source=$(cat $path)
         source="${source//VALIDATOR_SEEDS_LIST/"${validator_seeds}"}"
         source="${source//FULLNODE_SEEDS_LIST/"${fullnode_seeds}"}"
+        source="${source//PUBLIC_SEEDS_LIST/"${public_seeds}"}"
         echo "$source" >$path
     done
     echo "* success"
@@ -633,8 +652,8 @@ function fn__vfn {
 function fn__pfn {
     echo 'PFN'
 
-    vport=10203
-    fport=10204
+    vport=10303
+    fport=10304
     node_path=${NODE_DIR}/pfn
     mkdir -p $node_path
 
