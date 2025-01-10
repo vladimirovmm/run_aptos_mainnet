@@ -74,6 +74,14 @@ storage:
     backup_service_address: "0.0.0.0:0"
     rocksdb_configs:
         enable_storage_sharding: false
+    enable_indexer: false # To enable the indexer
+
+indexer_grpc:
+    enabled: false # To enable the indexer
+    address: 0.0.0.0:50051
+    processor_task_count: 10
+    processor_batch_size: 100
+    output_batch_size: 100
 
 api:
     enabled: true
@@ -117,12 +125,13 @@ execution:
     genesis_file_location: "GENESIS_DIR/genesis.blob"
 
 full_node_networks:
-    - network_id:
-          private: "vfn"
-      listen_address: "/ip4/0.0.0.0/tcp/VALIDATOR_NETWORK_PORT"
+    - network_id: 
+        private: "vfn"
+      discovery_method: "onchain"
+      listen_address: "/ip4/0.0.0.0/tcp/FULLNODE_NETWORK_PORT"
       identity:
-          type: "from_file"
-          path: "keys/validator-identity.yaml"
+        type: "from_file"
+        path: ./keys/validator-full-node-identity.yaml
       seeds: FULLNODE_SEEDS_LIST
 
     - network_id: "public"
@@ -138,6 +147,14 @@ storage:
     backup_service_address: "0.0.0.0:0"
     rocksdb_configs:
         enable_storage_sharding: false
+    enable_indexer: false # To enable the indexer
+
+indexer_grpc:
+    enabled: false # To enable the indexer
+    address: 0.0.0.0:50051
+    processor_task_count: 10
+    processor_batch_size: 100
+    output_batch_size: 100
 
 api:
     enabled: true
@@ -511,6 +528,9 @@ function fn__init {
         echo "$source" >$path
     done
     echo "* success"
+
+    echo 'v6: indexer is enabled'
+    sed -i 's/false \# To enable the indexer/true \# To enable the indexer/g' ${NODE_DIR}/v6/configs/fullnode.yaml
 
     echo '= = = end = = ='
 }
