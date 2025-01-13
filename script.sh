@@ -82,6 +82,7 @@ indexer_grpc:
     processor_task_count: 10
     processor_batch_size: 100
     output_batch_size: 100
+    # use_data_service_interface: true
 
 api:
     enabled: true
@@ -205,7 +206,7 @@ function fn__build_binaries {
 
     for package in ${APTOS_BIN_NAME} ${APTOS_NODE_BIN_NAME}; do
         echo "*" $package
-        cargo build -p $package --release || exit 12
+        cargo build -p $package --release --features indexer || exit 12
         cp target/release/$package ${BIN_DIR}/$package
     done
 
