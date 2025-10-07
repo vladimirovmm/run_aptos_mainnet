@@ -22,16 +22,6 @@
             }
         },
         {
-            "label": "validators: init (re-run key [1])",
-            "type": "shell",
-            "command": "rm -rf node/v1/keys; APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
             "label": "validators: watchexec init",
             "type": "shell",
             "command": "watchexec -w script.sh -c -- APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
@@ -112,36 +102,6 @@
             }
         },
         {
-            "label": "pfn: init",
-            "type": "shell",
-            "command": "./script.sh pfn",
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "pfn: watchexec init",
-            "type": "shell",
-            "command": "watchexec -w script.sh -c  -- ./script.sh pfn",
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "pfn: run",
-            "type": "shell",
-            "command": "rm -rf node/pfn/data; ./script.sh pfn_run",
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
             "label": "show-validator",
             "type": "shell",
             "command": "aptos node show-validator-set --url http://localhost:8080",
@@ -151,25 +111,5 @@
                 "isDefault": true
             }
         },
-        {
-            "label": "[1] run",
-            "type": "shell",
-            "command": "cd node/v1; rm -rf data; /home/vmm/projects/pontem/run_aptos/bin/aptos-node --config configs/validator.yaml",
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        },
-        {
-            "label": "[6] run",
-            "type": "shell",
-            "command": "cd node/v6; rm -rf data; /home/vmm/projects/pontem/run_aptos/bin/aptos-node --config configs/fullnode.yaml",
-            "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        }
     ]
 }

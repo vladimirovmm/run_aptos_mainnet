@@ -716,11 +716,6 @@ vfn_run)
     cd node/vfn
     ${APTOS_NODE_BIN} --config config/vfn.yaml
     ;;
-pfn) fn__pfn ;;
-pfn_run)
-    cd node/pfn
-    ${APTOS_NODE_BIN} --config config/pfn.yaml
-    ;;
 *) echo "$1 is not an option" ;;
 esac
 
