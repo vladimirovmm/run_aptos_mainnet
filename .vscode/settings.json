@@ -4,10 +4,14 @@
         "connrefused",
         "fpath",
         "fport",
+        "FULLNODE",
         "fullnodes",
+        "pontem",
         "realpath",
         "rocksdb",
         "SFULLNODE",
+        "SPUBLIC",
+        "statekeys",
         "SVALIDATOR",
         "vport"
     ]

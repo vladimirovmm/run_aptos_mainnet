@@ -1,9 +1,9 @@
 .history
 # .vscode
 .aptos
-# additional_accounts
-# bin
-# genesis
-# node
-# vfn
+additional_accounts
+bin
+genesis
+node
+vfn
 net.zip

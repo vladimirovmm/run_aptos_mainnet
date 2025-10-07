@@ -11,3 +11,6 @@ v3_pfn:
 		rm -rf data/;\
 		../../bin/aptos-node --config pfn.yaml
 		# ../../bin/aptos-node --config validator.yaml
+
+run__cluster:
+	process-compose up -p 8079
