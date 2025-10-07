@@ -19,6 +19,9 @@ APTOS_BIN=${BIN_DIR}/${APTOS_BIN_NAME}
 APTOS_NODE_BIN_NAME='aptos-node'
 APTOS_NODE_BIN=${BIN_DIR}/${APTOS_NODE_BIN_NAME}
 
+APTOS_DEBUGGER_BIN_NAME='aptos-debugger'
+APTOS_DEBUGGER_BIN=${BIN_DIR}/${APTOS_DEBUGGER_BIN_NAME}
+
 # wget -O validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
 VALIDATOR_CONFIG='base:
     role: "validator"
@@ -73,7 +76,7 @@ full_node_networks:
 storage:
     backup_service_address: "0.0.0.0:0"
     rocksdb_configs:
-        enable_storage_sharding: false
+        enable_storage_sharding: true
     enable_indexer: false # To enable the indexer
 
 indexer_grpc:
@@ -147,7 +150,7 @@ full_node_networks:
 storage:
     backup_service_address: "0.0.0.0:0"
     rocksdb_configs:
-        enable_storage_sharding: false
+        enable_storage_sharding: true
     enable_indexer: false # To enable the indexer
 
 indexer_grpc:
@@ -194,23 +197,40 @@ function fn__build_binaries {
         exit 11
     fi
 
-    if [ -f ${APTOS_BIN} ] && [ -f ${APTOS_NODE_BIN} ]; then
-        echo '*' ${APTOS_BIN} 'exist'
-        echo '*' ${APTOS_NODE_BIN} 'exist'
-        return
-    fi
+    mkdir -p ${BIN_DIR} || exit 14
 
-    mkdir -p ${BIN_DIR}
+    declare -A list
+    
+    list[0,0]="${APTOS_BIN}" 
+    list[0,1]="${APTOS_BIN_NAME}";
+    list[0,2]='--features indexer';
 
-    cd ${APTOS_SOURCE}
+    list[1,0]="${APTOS_NODE_BIN}" 
+    list[1,1]="${APTOS_NODE_BIN_NAME}";
+    list[1,2]='--features indexer';
 
-    for package in ${APTOS_BIN_NAME} ${APTOS_NODE_BIN_NAME}; do
-        echo "*" $package
-        cargo build -p $package --release --features indexer || exit 12
-        cp target/release/$package ${BIN_DIR}/$package
+    list[2,0]="${APTOS_DEBUGGER_BIN}" 
+    list[2,1]="${APTOS_DEBUGGER_BIN_NAME}";
+
+    for ((i=0;i < 3; i++)); do
+        path=${list[$i,0]};
+        package=${list[$i,1]};
+        flag=${list[$i,2]};
+
+        if [ -f ${path} ]; then
+            echo '*' ${path} ${package} 'exist'
+            continue
+        fi
+
+        echo '*' ${package}
+
+        cd ${APTOS_SOURCE}
+
+        cargo build -p $package --release $flag  || exit 12
+        cp target/release/$package ${path} || exit 13
+
+        cd -
     done
-
-    cd -
 }
 
 function fn__build_framework {
@@ -393,6 +413,12 @@ function fn__genesis {
     # sed -i 's/epoch_duration_secs:.*/epoch_duration_secs: 120/g' $layout_path
     echo '* `'$layout_path'` has been created'
 
+    echo "RUN: " ${APTOS_BIN} genesis generate-genesis \
+        --local-repository-dir ${GENESIS_DIR} \
+        --output-dir ${GENESIS_DIR} \
+        --mainnet \
+        --assume-yes;
+
     ${APTOS_BIN} genesis generate-genesis \
         --local-repository-dir ${GENESIS_DIR} \
         --output-dir ${GENESIS_DIR} \
@@ -429,6 +455,12 @@ function fn__set_pool_address {
     node_path=$1
     owner_address=$(cat $node_path/keys/important/owner.address)
     pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --url $node_url | jq .Result[0].pool_address | tr -d '"') || exit 38
+
+    echo 'Pool address: ' $pool_address;
+    if [[ $pool_address == "" ]]; then
+        exit 39;
+    fi
+
     find $node_path -type f -name "*.yaml" -exec \
         sed -i 's|^account_address:.*|account_address: '$pool_address'|g' {} \;
 }
@@ -492,6 +524,10 @@ function fn__init {
     sed -i 's/FULLNODE_SEEDS_LIST/ {}/g' $config_path'.tmp'
     sed -i 's/PUBLIC_SEEDS_LIST/ {}/g' $config_path'.tmp'
 
+    waypoint=$(cat ${GENESIS_DIR}/waypoint.txt);
+    ${APTOS_DEBUGGER_BIN} aptos-db bootstrap ./db --genesis-txn-file ${GENESIS_DIR}/genesis.blob --waypoint-to-verify $waypoint --commit 
+
+    echo 'Run node:' ${APTOS_NODE_BIN} --config $config_path'.tmp'
     ${APTOS_NODE_BIN} --config $config_path'.tmp' &>/dev/null &
     node_pid=$!
 
@@ -501,7 +537,7 @@ function fn__init {
     curl $node_url --head -X GET \
         --retry-connrefused \
         --retry 30 \
-        --retry-delay 1 &>/dev/null
+        --retry-delay 1 &>/dev/null || exit 60;
 
     for ((i = 1; i <= ${NODE_COUNT}; i++)); do
         echo "#$i set pool address"
@@ -512,7 +548,7 @@ function fn__init {
     fullnode_seeds=$(fn__generate_seeds fullnodes)
     public_seeds=$(fn__generate_seeds publics)
 
-    kill $node_pid || exit 60
+    kill $node_pid || exit 70
 
     rm -rf ${NODE_DIR}/v1/data $config_path'.tmp' || true
 

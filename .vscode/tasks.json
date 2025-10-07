@@ -12,6 +12,26 @@
             }
         },
         {
+            "label": "validators: re-init",
+            "type": "shell",
+            "command": "rm -rf node genesis additional_accounts; APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "validators: init (re-run key [1])",
+            "type": "shell",
+            "command": "rm -rf node/v1/keys; APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "validators: watchexec init",
             "type": "shell",
             "command": "watchexec -w script.sh -c -- APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
