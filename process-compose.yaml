@@ -1,17 +1,24 @@
 processes:
+  # 8080
   VALIDATOR-1:
     command: cd node/v1; ../../bin/aptos-node --config configs/validator.yaml
+  
+  # 8081
   VALIDATOR-2:
     command: cd node/v2; ../../bin/aptos-node --config configs/validator.yaml
 
+  # 8082
   VALIDATOR-3:
     command: cd node/v3; ../../bin/aptos-node --config configs/validator.yaml
 
+  # 8083
   VALIDATOR-4:
     command: cd node/v4; ../../bin/aptos-node --config configs/validator.yaml
 
+  # 8084
   VALIDATOR-5:
     command: cd node/v5; ../../bin/aptos-node --config configs/validator.yaml
 
+  # 8085
   FULLNODE-6:
     command: cd node/v6; ../../bin/aptos-node --config configs/fullnode.yaml

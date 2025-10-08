@@ -153,12 +153,23 @@ storage:
         enable_storage_sharding: true
     enable_indexer: false # To enable the indexer
 
+indexer:
+    enabled: false
+    postgres_uri: postgresql://_USER_:_PASS_@localhost:5432/_DB_NAME_
+    processor: "token_processor"
+
 indexer_grpc:
     enabled: false # To enable the indexer
     address: 0.0.0.0:50051
     processor_task_count: 10
     processor_batch_size: 100
     output_batch_size: 100
+
+indexer_db_config:
+    enable_transaction: false # To enable the indexer
+    enable_event: false # To enable the indexer
+    enable_event_v2_translation: false # To enable the indexer
+    enable_statekeys: false # To enable the indexer
 
 api:
     enabled: true
@@ -226,6 +237,7 @@ function fn__build_binaries {
 
         cd ${APTOS_SOURCE}
 
+        echo cargo build -p $package --release $flag;
         cargo build -p $package --release $flag  || exit 12
         cp target/release/$package ${path} || exit 13
 
@@ -457,7 +469,7 @@ function fn__set_pool_address {
     pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --url $node_url | jq .Result[0].pool_address | tr -d '"') || exit 38
 
     echo 'Pool address: ' $pool_address;
-    if [[ $pool_address == "" ]]; then
+    if [[ $pool_address == ""] || [$pool_address == "null" ]]; then
         exit 39;
     fi
 
@@ -525,7 +537,10 @@ function fn__init {
     sed -i 's/PUBLIC_SEEDS_LIST/ {}/g' $config_path'.tmp'
 
     waypoint=$(cat ${GENESIS_DIR}/waypoint.txt);
-    ${APTOS_DEBUGGER_BIN} aptos-db bootstrap ./db --genesis-txn-file ${GENESIS_DIR}/genesis.blob --waypoint-to-verify $waypoint --commit 
+    ${APTOS_DEBUGGER_BIN} aptos-db bootstrap ./db \
+        --genesis-txn-file ${GENESIS_DIR}/genesis.blob \
+        --waypoint-to-verify $waypoint \
+        --commit || exit 51
 
     echo 'Run node:' ${APTOS_NODE_BIN} --config $config_path'.tmp'
     ${APTOS_NODE_BIN} --config $config_path'.tmp' &>/dev/null &
@@ -711,6 +726,7 @@ run) process-compose -p 8070 ;;
 stop) pkill 'process-compose' -9 ;;
 clear) rm -rf additional_accounts genesis node ;;
 clear_data) find ./ -type d -name data -exec rm -rf {} \; ;;
+clear_db) find ./ -type d -name db -exec rm -rf {} \; ;;
 vfn) fn__vfn ;;
 vfn_run)
     cd node/vfn
