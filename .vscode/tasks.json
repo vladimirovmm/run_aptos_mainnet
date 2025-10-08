@@ -72,6 +72,16 @@
             }
         },
         {
+            "label": "validators: clear db",
+            "type": "shell",
+            "command": "./script.sh clear_db",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
             "label": "vfn: init",
             "type": "shell",
             "command": "./script.sh vfn",
