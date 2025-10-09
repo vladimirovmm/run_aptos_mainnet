@@ -421,8 +421,12 @@ function fn__genesis {
     sed -i 's/is_test: true/is_test: false/g' $layout_path
     let total_supply=${NODE_COUNT}*3*${NODE_BALANCE}+${ADDITIONAL_ACCOUNTS}*${ADDITIONAL_ACCOUNT_BALANCE}
     sed -i 's/total_supply: ~/total_supply: '$total_supply'/g' $layout_path
+    
+    # @todo
+    # sed -i 's/voting_duration_secs:.*/voting_duration_secs: 300/g' $layout_path
     # @todo
     # sed -i 's/epoch_duration_secs:.*/epoch_duration_secs: 120/g' $layout_path
+
     echo '* `'$layout_path'` has been created'
 
     echo "RUN: " ${APTOS_BIN} genesis generate-genesis \
