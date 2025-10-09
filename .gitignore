@@ -4,9 +4,9 @@
 additional_accounts
 bin
 genesis
+build
 node
 vfn
 net.zip
-test_update
 proposal.move
 update.move
