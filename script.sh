@@ -755,7 +755,6 @@ function fn__vote_test {
 
     proposal_id=${proposal_id##*Script Hash:}
     proposal_id=$(echo ${proposal_id:10}  | jq .Result.proposal_id)
-    
 
     echo
     echo "[$proposal_id] Статус голосования"
@@ -785,11 +784,7 @@ function fn__vote_test {
             --url http://localhost:8080 \
             --yes \
             --assume-yes || exit 5
-
-        
     done
-
-    
 
     echo
     echo "[$proposal_id] Статус голосования"
@@ -805,7 +800,9 @@ function fn__vote_test {
 
 
     echo
-    echo "[$proposal_id] Выполнение скрипта. Нужно выполнить после завершения времени на голосование"
+    echo "[$proposal_id] Выполнение скрипта."
+    echo "Нужно выполнить после завершения времени на голосование"
+    echo "Достаточно выполнить на одной машине и на остальные само раскатится"
     echo 
 
     private_key=$(cat ${NODE_DIR}/v6/keys/important/voter)
