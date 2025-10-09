@@ -1,7 +1,7 @@
 processes:
   # 8080
-  VALIDATOR-1:
-    command: cd node/v1; ../../bin/aptos-node --config configs/validator.yaml
+  FULLNODE-1:
+    command: cd node/v1;  RUST_LOG=warn ../../bin/aptos-node --config configs/fullnode.yaml
   
   # 8081
   VALIDATOR-2:
@@ -20,5 +20,5 @@ processes:
     command: cd node/v5; ../../bin/aptos-node --config configs/validator.yaml
 
   # 8085
-  FULLNODE-6:
-    command: cd node/v6; ../../bin/aptos-node --config configs/fullnode.yaml
+  VALIDATOR-6:
+    command: cd node/v6; ../../bin/aptos-node --config configs/validator.yaml

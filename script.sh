@@ -472,6 +472,7 @@ function fn__set_pool_address {
     if [[ $pool_address == ""] || [$pool_address == "null" ]]; then
         exit 39;
     fi
+    echo $pool_address > $node_path/keys/important/pool.address
 
     find $node_path -type f -name "*.yaml" -exec \
         sed -i 's|^account_address:.*|account_address: '$pool_address'|g' {} \;
@@ -565,7 +566,7 @@ function fn__init {
 
     kill $node_pid || exit 70
 
-    rm -rf ${NODE_DIR}/v1/data $config_path'.tmp' || true
+    rm -rf ${node_path}/v1/data ${node_path}/v1/db  $config_path'.tmp' || true
 
     echo 'Set seeds:'
     for path in $(
@@ -581,8 +582,8 @@ function fn__init {
     done
     echo "* success"
 
-    echo 'v6: indexer is enabled'
-    sed -i 's/false \# To enable the indexer/true \# To enable the indexer/g' ${NODE_DIR}/v6/configs/fullnode.yaml
+    echo 'v1: indexer is enabled'
+    sed -i 's/false \# To enable the indexer/true \# To enable the indexer/g' ${NODE_DIR}/v1/configs/fullnode.yaml
 
     echo '= = = end = = ='
 }
@@ -739,5 +740,3 @@ esac
 # ./script.sh run
 # ./script.sh vfn
 # ./script.sh clear
-
-# bin/aptos genesis generate-genesis --local-repository-dir <PATH/TO>/run_aptos/genesis --output-dir <PATH/TO>/run_aptos/genesis --mainnet --assume-yes
