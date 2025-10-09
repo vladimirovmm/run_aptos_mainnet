@@ -7,3 +7,6 @@ genesis
 node
 vfn
 net.zip
+test_update
+proposal.move
+update.move

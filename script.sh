@@ -472,6 +472,7 @@ function fn__set_pool_address {
     if [[ $pool_address == ""] || [$pool_address == "null" ]]; then
         exit 39;
     fi
+    echo $pool_address > $node_path/keys/important/pool.address
 
     find $node_path -type f -name "*.yaml" -exec \
         sed -i 's|^account_address:.*|account_address: '$pool_address'|g' {} \;
@@ -565,7 +566,7 @@ function fn__init {
 
     kill $node_pid || exit 70
 
-    rm -rf ${NODE_DIR}/v1/data $config_path'.tmp' || true
+    rm -rf ${node_path}/v1/data ${node_path}/v1/db  $config_path'.tmp' || true
 
     echo 'Set seeds:'
     for path in $(
@@ -581,8 +582,8 @@ function fn__init {
     done
     echo "* success"
 
-    echo 'v6: indexer is enabled'
-    sed -i 's/false \# To enable the indexer/true \# To enable the indexer/g' ${NODE_DIR}/v6/configs/fullnode.yaml
+    echo 'v1: indexer is enabled'
+    sed -i 's/false \# To enable the indexer/true \# To enable the indexer/g' ${NODE_DIR}/v1/configs/fullnode.yaml
 
     echo '= = = end = = ='
 }
@@ -718,6 +719,103 @@ function fn__vfn {
     cd -
 }
 
+function fn__vote_test {
+    echo
+    echo "Список голосования"
+    echo
+
+    aptos governance list-proposals \
+	    --url http://localhost:8080 || exit 1
+
+    echo
+    echo "Собрать скрипт"
+    echo
+
+    aptos governance generate-upgrade-proposal \
+        --account 0x1 \
+        --package-dir test_update/ \
+        --output ./update.move || exit 2
+
+    echo
+    echo "(V1) Предложить на голосование"
+    echo
+    
+    private_key=$(cat ${NODE_DIR}/v1/keys/important/voter)
+    pool_address=$(cat ${NODE_DIR}/v1/keys/important/pool.address)
+
+    proposal_id=$(aptos governance propose \
+        --script-path ./update.move \
+        --url http://localhost:8080 \
+        --private-key $private_key \
+        --pool-address $pool_address \
+        --metadata-url "https://raw.githubusercontent.com/aptos-foundation/mainnet-proposals/refs/heads/main/metadata/2025-08-25-operations-default-to-fa-apt-store/operations_default_to_fa_apt_store.json" \
+        --max-gas 100000 \
+        --expiration-secs 600 \
+        --assume-yes ) || exit 3
+
+    proposal_id=${proposal_id##*Script Hash:}
+    proposal_id=$(echo ${proposal_id:10}  | jq .Result.proposal_id)
+
+    echo
+    echo "[$proposal_id] Статус голосования"
+    echo 
+
+    aptos governance show-proposal \
+        --url http://localhost:8080 \
+        --proposal-id $proposal_id || exit 4
+
+
+    echo "[$proposal_id] Голосование других участников"
+
+    for i in {2..6}; do
+
+        echo
+        echo "[$proposal_id] Голосование участника $i"
+        echo
+
+        private_key=$(cat ${NODE_DIR}/v${i}/keys/important/voter)
+        pool_address=$(cat ${NODE_DIR}/v${i}/keys/important/pool.address)
+
+        aptos governance vote \
+            --proposal-id $proposal_id \
+            --pool-addresses $pool_address \
+            --private-key $private_key \
+            --voting-power 100000000000000 \
+            --url http://localhost:8080 \
+            --yes \
+            --assume-yes || exit 5
+    done
+
+    echo
+    echo "[$proposal_id] Статус голосования"
+    echo 
+
+    echo "aptos governance show-proposal \
+        --url http://localhost:8080 \
+        --proposal-id $proposal_id"
+    
+    aptos governance show-proposal \
+        --url http://localhost:8080 \
+        --proposal-id $proposal_id || exit 7
+
+
+    echo
+    echo "[$proposal_id] Выполнение скрипта."
+    echo "Нужно выполнить после завершения времени на голосование"
+    echo "Достаточно выполнить на одной машине и на остальные само раскатится"
+    echo 
+
+    private_key=$(cat ${NODE_DIR}/v6/keys/important/voter)
+    pool_address=$(cat ${NODE_DIR}/v6/keys/important/pool.address)
+
+    echo "aptos governance execute-proposal \
+        --proposal-id $proposal_id \
+        --private-key $private_key \
+        --url http://localhost:8085 \
+        --script-path ./update.move"
+
+}
+
 fn__necessary_programs
 
 case $1 in
@@ -732,6 +830,7 @@ vfn_run)
     cd node/vfn
     ${APTOS_NODE_BIN} --config config/vfn.yaml
     ;;
+vote) fn__vote_test ;;
 *) echo "$1 is not an option" ;;
 esac
 
@@ -739,5 +838,3 @@ esac
 # ./script.sh run
 # ./script.sh vfn
 # ./script.sh clear
-
-# bin/aptos genesis generate-genesis --local-repository-dir <PATH/TO>/run_aptos/genesis --output-dir <PATH/TO>/run_aptos/genesis --mainnet --assume-yes
