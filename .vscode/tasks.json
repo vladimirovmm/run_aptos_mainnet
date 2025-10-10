@@ -131,5 +131,21 @@
                 "isDefault": true
             }
         },
+        {
+            "label": "fullnode[v1]: run",
+            "type": "shell",
+            "command": "rm -rf data db; ../../bin/aptos-node --config configs/fullnode.yaml",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/node/v1",
+                "env": {
+                    "RUST_LOG": "warn"
+                }
+            },
+        },
     ]
 }
