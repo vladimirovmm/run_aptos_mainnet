@@ -4,17 +4,24 @@
         {
             "label": "validators: init",
             "type": "shell",
-            "command": "APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
+            "command": "./script.sh init",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
-            }
+            },
+            "options": {
+                "env": {
+                    "GIT_SOURCE": "../../tmp/aptos-core",
+                    "NAME": "aptos",
+                    "RUST_LOG": "warn"
+                }
+            },
         },
         {
             "label": "validators: re-init",
             "type": "shell",
-            "command": "rm -rf node genesis additional_accounts; APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
+            "command": "rm -rf node genesis additional_accounts; GIT_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -24,7 +31,7 @@
         {
             "label": "validators: watchexec init",
             "type": "shell",
-            "command": "watchexec -w script.sh -c -- APTOS_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
+            "command": "watchexec -w script.sh -c -- GIT_SOURCE=/home/vmm/projects/tmp/aptos-core ./script.sh init",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
@@ -129,6 +136,12 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
+            },
+            "options": {
+                "env": {
+                    "NAME": "aptos",
+                    "RUST_LOG": "debug"
+                }
             }
         },
         {
