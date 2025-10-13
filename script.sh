@@ -14,13 +14,14 @@ ADDITIONAL_ACCOUNTS=10
 ADDITIONAL_ACCOUNT_BALANCE=100000000000000000
 ADDITIONAL_ACCOUNTS_DIR=${ROOT_DIR}/additional_accounts
 
-APTOS_BIN_NAME='aptos'
-APTOS_BIN=${BIN_DIR}/${APTOS_BIN_NAME}
-APTOS_NODE_BIN_NAME='aptos-node'
-APTOS_NODE_BIN=${BIN_DIR}/${APTOS_NODE_BIN_NAME}
+NAME=${NAME:-'aptos'}
+CLI_BIN_NAME=${NAME}
+CLI_BIN=${BIN_DIR}/${CLI_BIN_NAME}
+NODE_BIN_NAME=${NAME}'-node'
+NODE_BIN=${BIN_DIR}/${NODE_BIN_NAME}
 
-APTOS_DEBUGGER_BIN_NAME='aptos-debugger'
-APTOS_DEBUGGER_BIN=${BIN_DIR}/${APTOS_DEBUGGER_BIN_NAME}
+DEBUGGER_BIN_NAME=${NAME}'-debugger'
+DEBUGGER_BIN=${BIN_DIR}/${DEBUGGER_BIN_NAME}
 
 # wget -O validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
 VALIDATOR_CONFIG='base:
@@ -203,8 +204,8 @@ function fn__necessary_programs {
 function fn__build_binaries {
     echo 'Preparing binaries'
 
-    if [ -z ${APTOS_SOURCE} ]; then
-        echo 'The path to `Aptos` not specified. Specify it through the environment `APTOS_SOURCE`'
+    if [ -z ${GIT_SOURCE} ]; then
+        echo 'The path to `SOURCE` not specified. Specify it through the environment `GIT_SOURCE`'
         exit 11
     fi
 
@@ -212,16 +213,16 @@ function fn__build_binaries {
 
     declare -A list
     
-    list[0,0]="${APTOS_BIN}" 
-    list[0,1]="${APTOS_BIN_NAME}";
+    list[0,0]="${CLI_BIN}" 
+    list[0,1]="${CLI_BIN_NAME}";
     list[0,2]='--features indexer';
 
-    list[1,0]="${APTOS_NODE_BIN}" 
-    list[1,1]="${APTOS_NODE_BIN_NAME}";
+    list[1,0]="${NODE_BIN}" 
+    list[1,1]="${NODE_BIN_NAME}";
     list[1,2]='--features indexer';
 
-    list[2,0]="${APTOS_DEBUGGER_BIN}" 
-    list[2,1]="${APTOS_DEBUGGER_BIN_NAME}";
+    list[2,0]="${DEBUGGER_BIN}" 
+    list[2,1]="${DEBUGGER_BIN_NAME}";
 
     for ((i=0;i < 3; i++)); do
         path=${list[$i,0]};
@@ -235,7 +236,7 @@ function fn__build_binaries {
 
         echo '*' ${package}
 
-        cd ${APTOS_SOURCE}
+        cd ${GIT_SOURCE}
 
         echo cargo build -p $package --release $flag;
         cargo build -p $package --release $flag  || exit 12
@@ -257,11 +258,11 @@ function fn__build_framework {
 
     mkdir -p genesis
 
-    cd ${APTOS_SOURCE}
-    cargo run --package aptos-framework -- release --target mainnet || 21
+    cd ${GIT_SOURCE}
+    cargo run --package ${NAME}-framework -- release --target mainnet || 21
     cd -
 
-    mv ${APTOS_SOURCE}/mainnet.mrb $framework_path || 22
+    mv ${GIT_SOURCE}/mainnet.mrb $framework_path || 22
 }
 
 function fn__generate_key {
@@ -275,7 +276,7 @@ function fn__generate_key {
         return
     fi
 
-    account_address=$(${APTOS_BIN} key generate --vanity-prefix 0x --output-file $1 --assume-yes | grep -om 1 "0x[0-9a-f]*") || exit 37
+    account_address=$(${CLI_BIN} key generate --vanity-prefix 0x --output-file $1 --assume-yes | grep -om 1 "0x[0-9a-f]*") || exit 37
     echo $account_address >$1.address
     echo '*' $1 'has been generated'
 }
@@ -287,7 +288,7 @@ function fn__generating_keys_for_node {
 
     echo '['$node_path'] Generating a configuration file with keys:'
     if [ ! -f $node_path/keys/public-keys.yaml ]; then
-        ${APTOS_BIN} genesis generate-keys --output-dir $node_path/keys --assume-yes || exec 33
+        ${CLI_BIN} genesis generate-keys --output-dir $node_path/keys --assume-yes || exec 33
         echo '* `'$node_path'/keys/public-keys.yaml` has been generated'
     else
         echo '* The `'$node_path'/keys/public-keys.yaml` keys already exist'
@@ -295,7 +296,7 @@ function fn__generating_keys_for_node {
 
     echo 'Validator config:'
     if [ ! -f $node_path/keys/validator/operator.yaml ]; then
-        ${APTOS_BIN} genesis set-validator-configuration \
+        ${CLI_BIN} genesis set-validator-configuration \
             --local-repository-dir $node_path/keys \
             --owner-public-identity-file $node_path/keys/public-keys.yaml \
             --username validator \
@@ -402,7 +403,7 @@ function fn__genesis {
     fi
 
     layout_path=${GENESIS_DIR}/layout.yaml
-    ${APTOS_BIN} genesis generate-layout-template \
+    ${CLI_BIN} genesis generate-layout-template \
         --output-file $layout_path \
         --assume-yes || exit 41
     sed -i 's/root_key: ~//g' $layout_path
@@ -429,13 +430,13 @@ function fn__genesis {
 
     echo '* `'$layout_path'` has been created'
 
-    echo "RUN: " ${APTOS_BIN} genesis generate-genesis \
+    echo "RUN: " ${CLI_BIN} genesis generate-genesis \
         --local-repository-dir ${GENESIS_DIR} \
         --output-dir ${GENESIS_DIR} \
         --mainnet \
         --assume-yes;
 
-    ${APTOS_BIN} genesis generate-genesis \
+    ${CLI_BIN} genesis generate-genesis \
         --local-repository-dir ${GENESIS_DIR} \
         --output-dir ${GENESIS_DIR} \
         --mainnet \
@@ -470,7 +471,7 @@ function fn__validator_config {
 function fn__set_pool_address {
     node_path=$1
     owner_address=$(cat $node_path/keys/important/owner.address)
-    pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --url $node_url | jq .Result[0].pool_address | tr -d '"') || exit 38
+    pool_address=$(${CLI_BIN} node get-stake-pool --owner-address $owner_address --url $node_url | jq .Result[0].pool_address | tr -d '"') || exit 38
 
     echo 'Pool address: ' $pool_address;
     if [[ $pool_address == ""] || [$pool_address == "null" ]]; then
@@ -484,7 +485,7 @@ function fn__set_pool_address {
 
 function fn__generate_seeds {
     node_url=http://localhost:8080
-    output=$(${APTOS_BIN} node show-validator-set --url $node_url)
+    output=$(${CLI_BIN} node show-validator-set --url $node_url)
     count=$(echo $output | jq '.Result.active_validators | length')
 
     validator_seeds=""
@@ -541,14 +542,15 @@ function fn__init {
     sed -i 's/FULLNODE_SEEDS_LIST/ {}/g' $config_path'.tmp'
     sed -i 's/PUBLIC_SEEDS_LIST/ {}/g' $config_path'.tmp'
 
+    rm -rf ./data
     waypoint=$(cat ${GENESIS_DIR}/waypoint.txt);
-    ${APTOS_DEBUGGER_BIN} aptos-db bootstrap ./db \
+    ${DEBUGGER_BIN} ${NAME}-db bootstrap ./data/db \
         --genesis-txn-file ${GENESIS_DIR}/genesis.blob \
         --waypoint-to-verify $waypoint \
         --commit || exit 51
 
-    echo 'Run node:' ${APTOS_NODE_BIN} --config $config_path'.tmp'
-    ${APTOS_NODE_BIN} --config $config_path'.tmp' &>/dev/null &
+    echo 'Run node:' ${NODE_BIN} --config $config_path'.tmp'
+    ${NODE_BIN} --config $config_path'.tmp' &>/dev/null &
     node_pid=$!
 
     cd -
@@ -618,7 +620,7 @@ function fn__vfn {
 
     echo 'Creating profiles:'
     for tp in 'owner' 'operator' 'voter'; do
-        ${APTOS_BIN} init \
+        ${CLI_BIN} init \
             --profile mainnet-$tp \
             --private-key-file $important_keys/$tp \
             --skip-faucet \
@@ -636,7 +638,7 @@ function fn__vfn {
     echo '* Voter address: '$voter_address
 
     echo 'Checking the owner balance:'
-    balance=$(${APTOS_BIN} account balance --profile mainnet-owner | jq .Result[0].balance) || exit 2
+    balance=$(${CLI_BIN} account balance --profile mainnet-owner | jq .Result[0].balance) || exit 2
     if [ $balance -lt ${MIN_AMOUNT} ]; then
         echo 'Error: Insufficient balance '$balance
         exit 31
@@ -645,11 +647,11 @@ function fn__vfn {
     fi
 
     echo 'Checking the operator balance:'
-    balance=$(${APTOS_BIN} account balance --profile mainnet-operator | jq .Result[0].balance) || exit 3
+    balance=$(${CLI_BIN} account balance --profile mainnet-operator | jq .Result[0].balance) || exit 3
 
     if [ $balance -lt ${MIN_AMOUNT} ]; then
         echo ${MIN_AMOUNT}
-        ${APTOS_BIN} account transfer \
+        ${CLI_BIN} account transfer \
             --account $operator_address \
             --amount ${MIN_AMOUNT} \
             --profile mainnet-owner \
@@ -661,7 +663,7 @@ function fn__vfn {
 
     echo 'Run the following command to initialize the staking pool:'
 
-    ${APTOS_BIN} stake create-staking-contract \
+    ${CLI_BIN} stake create-staking-contract \
         --operator $operator_address \
         --voter $voter_address \
         --amount 100000000000000 \
@@ -669,25 +671,25 @@ function fn__vfn {
         --profile mainnet-owner \
         --assume-yes
 
-    pool_address=$(${APTOS_BIN} node get-stake-pool --owner-address $owner_address --profile mainnet-owner | jq .Result[0].pool_address | tr -d '"') || exit 6
+    pool_address=$(${CLI_BIN} node get-stake-pool --owner-address $owner_address --profile mainnet-owner | jq .Result[0].pool_address | tr -d '"') || exit 6
     echo '* pool address created: '$pool_address
 
     echo 'Update on-chain network addresses:'
-    ${APTOS_BIN} node update-validator-network-addresses \
+    ${CLI_BIN} node update-validator-network-addresses \
         --pool-address $pool_address \
         --operator-config-file keys/validator/operator.yaml \
         --profile mainnet-operator \
         --assume-yes
 
     echo 'Update on-chain consensus key: '
-    ${APTOS_BIN} node update-consensus-key \
+    ${CLI_BIN} node update-consensus-key \
         --pool-address $pool_address \
         --operator-config-file keys/validator/operator.yaml \
         --profile mainnet-operator \
         --assume-yes
 
     echo 'Join the validator set:'
-    ${APTOS_BIN} node join-validator-set \
+    ${CLI_BIN} node join-validator-set \
         --pool-address $pool_address \
         --profile mainnet-operator \
         --assume-yes
@@ -728,14 +730,14 @@ function fn__vote_test {
     echo "Список голосования"
     echo
 
-    aptos governance list-proposals \
+    ${CLI_BIN} governance list-proposals \
 	    --url http://localhost:8080 || exit 1
 
     echo
     echo "Собрать скрипт"
     echo
 
-    aptos governance generate-upgrade-proposal \
+    ${CLI_BIN} governance generate-upgrade-proposal \
         --account 0x1 \
         --package-dir test_update/ \
         --output ./update.move || exit 2
@@ -747,12 +749,12 @@ function fn__vote_test {
     private_key=$(cat ${NODE_DIR}/v1/keys/important/voter)
     pool_address=$(cat ${NODE_DIR}/v1/keys/important/pool.address)
 
-    proposal_id=$(aptos governance propose \
+    proposal_id=$(${CLI_BIN} governance propose \
         --script-path ./update.move \
         --url http://localhost:8080 \
         --private-key $private_key \
         --pool-address $pool_address \
-        --metadata-url "https://raw.githubusercontent.com/aptos-foundation/mainnet-proposals/refs/heads/main/metadata/2025-08-25-operations-default-to-fa-apt-store/operations_default_to_fa_apt_store.json" \
+        --metadata-url "https://raw.githubusercontent.com/${NAME}-foundation/mainnet-proposals/refs/heads/main/metadata/2025-08-25-operations-default-to-fa-apt-store/operations_default_to_fa_apt_store.json" \
         --max-gas 100000 \
         --expiration-secs 600 \
         --assume-yes ) || exit 3
@@ -764,7 +766,7 @@ function fn__vote_test {
     echo "[$proposal_id] Статус голосования"
     echo 
 
-    aptos governance show-proposal \
+    ${CLI_BIN} governance show-proposal \
         --url http://localhost:8080 \
         --proposal-id $proposal_id || exit 4
 
@@ -780,7 +782,7 @@ function fn__vote_test {
         private_key=$(cat ${NODE_DIR}/v${i}/keys/important/voter)
         pool_address=$(cat ${NODE_DIR}/v${i}/keys/important/pool.address)
 
-        aptos governance vote \
+        ${CLI_BIN} governance vote \
             --proposal-id $proposal_id \
             --pool-addresses $pool_address \
             --private-key $private_key \
@@ -794,11 +796,11 @@ function fn__vote_test {
     echo "[$proposal_id] Статус голосования"
     echo 
 
-    echo "aptos governance show-proposal \
+    echo "${CLI_BIN} governance show-proposal \
         --url http://localhost:8080 \
         --proposal-id $proposal_id"
     
-    aptos governance show-proposal \
+    ${CLI_BIN} governance show-proposal \
         --url http://localhost:8080 \
         --proposal-id $proposal_id || exit 7
 
@@ -812,7 +814,7 @@ function fn__vote_test {
     private_key=$(cat ${NODE_DIR}/v6/keys/important/voter)
     pool_address=$(cat ${NODE_DIR}/v6/keys/important/pool.address)
 
-    echo "aptos governance execute-proposal \
+    echo "${CLI_BIN} governance execute-proposal \
         --proposal-id $proposal_id \
         --private-key $private_key \
         --url http://localhost:8085 \
@@ -832,13 +834,13 @@ clear_db) find ./ -type d -name db -exec rm -rf {} \; ;;
 vfn) fn__vfn ;;
 vfn_run)
     cd node/vfn
-    ${APTOS_NODE_BIN} --config config/vfn.yaml
+    ${NODE_BIN} --config config/vfn.yaml
     ;;
 vote) fn__vote_test ;;
 *) echo "$1 is not an option" ;;
 esac
 
-# APTOS_SOURCE=<PATH/TO/SOURCE> ./script.sh init
+# GIT_SOURCE=<PATH/TO/SOURCE> ./script.sh init
 # ./script.sh run
 # ./script.sh vfn
 # ./script.sh clear
