@@ -12,8 +12,10 @@
             },
             "options": {
                 "env": {
-                    "GIT_SOURCE": "../../tmp/aptos-core",
-                    "NAME": "aptos",
+                    // "GIT_SOURCE": "../../tmp/aptos-core",
+                    "GIT_SOURCE": "../lumio-node",
+                    // "NAME": "aptos",
+                    "NAME": "lumio",
                     "RUST_LOG": "warn"
                 }
             },
@@ -139,7 +141,23 @@
             },
             "options": {
                 "env": {
-                    "NAME": "aptos",
+                    "NAME": "lumio",
+                    "RUST_LOG": "NONE"
+                }
+            }
+        },
+        {
+            "label": "transfer: test",
+            "type": "shell",
+            "command": "./script.sh test_transfer",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "env": {
+                    "NAME": "lumio",
                     "RUST_LOG": "debug"
                 }
             }

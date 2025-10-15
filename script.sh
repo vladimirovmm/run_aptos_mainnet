@@ -749,18 +749,30 @@ function fn__vote_test {
     private_key=$(cat ${NODE_DIR}/v1/keys/important/voter)
     pool_address=$(cat ${NODE_DIR}/v1/keys/important/pool.address)
 
+
+    echo ${CLI_BIN} governance propose \
+        --script-path ./update.move \
+        --url http://localhost:8080 \
+        --private-key $private_key \
+        --pool-address $pool_address \
+        --metadata-url "https://raw.githubusercontent.com/aptos-foundation/mainnet-proposals/refs/heads/main/metadata/2023-05-26-disable-signature-checker-v2/disable-signature-checker.json" \
+        --max-gas 100000 \
+        --expiration-secs 600 \
+        --assume-yes
+
+
     proposal_id=$(${CLI_BIN} governance propose \
         --script-path ./update.move \
         --url http://localhost:8080 \
         --private-key $private_key \
         --pool-address $pool_address \
-        --metadata-url "https://raw.githubusercontent.com/${NAME}-foundation/mainnet-proposals/refs/heads/main/metadata/2025-08-25-operations-default-to-fa-apt-store/operations_default_to_fa_apt_store.json" \
+        --metadata-url "https://raw.githubusercontent.com/aptos-foundation/mainnet-proposals/refs/heads/main/metadata/2023-05-26-disable-signature-checker-v2/disable-signature-checker.json" \
         --max-gas 100000 \
         --expiration-secs 600 \
         --assume-yes ) || exit 3
 
-    proposal_id=${proposal_id##*Script Hash:}
-    proposal_id=$(echo ${proposal_id:10}  | jq .Result.proposal_id)
+    proposal_id="{ ${proposal_id#*{}" ;
+    proposal_id=$(echo $proposal_id | jq .Result.proposal_id)
 
     echo
     echo "[$proposal_id] Статус голосования"
@@ -821,6 +833,37 @@ function fn__vote_test {
         --script-path ./update.move"
 
 }
+function fn__transfer_test {
+
+    alice_key=$(cat additional_accounts/u1/user)
+    alice_address=$(cat additional_accounts/u1/user.address)
+
+    bob_address=$(cat additional_accounts/u2/user.address)
+
+    echo "1"
+
+
+    for address in $alice_address $bob_address; do
+        ${CLI_BIN} account balance \
+            --url  http://localhost:8080 \
+            --account $address
+    done;
+
+    ${CLI_BIN} account transfer \
+        --private-key $alice_key \
+        --amount 10000000 \
+        --account $bob_address \
+        --url  http://localhost:8080 \
+        --assume-yes
+
+    for address in $alice_address $bob_address; do
+        ${CLI_BIN} account balance \
+            --url  http://localhost:8080 \
+            --account $address
+    done;
+
+    curl http://localhost:8080/v1/accounts/0x1/resources | jq '.[] | select(.type == "0x1::coin::CoinInfo\u003C0x1::lumio_coin::LumioCoin\u003E")'
+}
 
 fn__necessary_programs
 
@@ -837,6 +880,7 @@ vfn_run)
     ${NODE_BIN} --config config/vfn.yaml
     ;;
 vote) fn__vote_test ;;
+test_transfer) fn__transfer_test ;;
 *) echo "$1 is not an option" ;;
 esac
 
