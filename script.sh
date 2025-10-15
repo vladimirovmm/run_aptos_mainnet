@@ -749,18 +749,30 @@ function fn__vote_test {
     private_key=$(cat ${NODE_DIR}/v1/keys/important/voter)
     pool_address=$(cat ${NODE_DIR}/v1/keys/important/pool.address)
 
+
+    echo ${CLI_BIN} governance propose \
+        --script-path ./update.move \
+        --url http://localhost:8080 \
+        --private-key $private_key \
+        --pool-address $pool_address \
+        --metadata-url "https://raw.githubusercontent.com/aptos-foundation/mainnet-proposals/refs/heads/main/metadata/2023-05-26-disable-signature-checker-v2/disable-signature-checker.json" \
+        --max-gas 100000 \
+        --expiration-secs 600 \
+        --assume-yes
+
+
     proposal_id=$(${CLI_BIN} governance propose \
         --script-path ./update.move \
         --url http://localhost:8080 \
         --private-key $private_key \
         --pool-address $pool_address \
-        --metadata-url "https://raw.githubusercontent.com/${NAME}-foundation/mainnet-proposals/refs/heads/main/metadata/2025-08-25-operations-default-to-fa-apt-store/operations_default_to_fa_apt_store.json" \
+        --metadata-url "https://raw.githubusercontent.com/aptos-foundation/mainnet-proposals/refs/heads/main/metadata/2023-05-26-disable-signature-checker-v2/disable-signature-checker.json" \
         --max-gas 100000 \
         --expiration-secs 600 \
         --assume-yes ) || exit 3
 
-    proposal_id=${proposal_id##*Script Hash:}
-    proposal_id=$(echo ${proposal_id:10}  | jq .Result.proposal_id)
+    proposal_id="{ ${proposal_id#*{}" ;
+    proposal_id=$(echo $proposal_id | jq .Result.proposal_id)
 
     echo
     echo "[$proposal_id] Статус голосования"

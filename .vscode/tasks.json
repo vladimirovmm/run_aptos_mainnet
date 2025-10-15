@@ -12,8 +12,10 @@
             },
             "options": {
                 "env": {
-                    "GIT_SOURCE": "../../tmp/aptos-core",
-                    "NAME": "aptos",
+                    // "GIT_SOURCE": "../../tmp/aptos-core",
+                    "GIT_SOURCE": "../lumio-node",
+                    // "NAME": "aptos",
+                    "NAME": "lumio",
                     "RUST_LOG": "warn"
                 }
             },
