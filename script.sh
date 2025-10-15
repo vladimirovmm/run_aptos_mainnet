@@ -833,6 +833,37 @@ function fn__vote_test {
         --script-path ./update.move"
 
 }
+function fn__transfer_test {
+
+    alice_key=$(cat additional_accounts/u1/user)
+    alice_address=$(cat additional_accounts/u1/user.address)
+
+    bob_address=$(cat additional_accounts/u2/user.address)
+
+    echo "1"
+
+
+    for address in $alice_address $bob_address; do
+        ${CLI_BIN} account balance \
+            --url  http://localhost:8080 \
+            --account $address
+    done;
+
+    ${CLI_BIN} account transfer \
+        --private-key $alice_key \
+        --amount 10000000 \
+        --account $bob_address \
+        --url  http://localhost:8080 \
+        --assume-yes
+
+    for address in $alice_address $bob_address; do
+        ${CLI_BIN} account balance \
+            --url  http://localhost:8080 \
+            --account $address
+    done;
+
+    curl http://localhost:8080/v1/accounts/0x1/resources | jq '.[] | select(.type == "0x1::coin::CoinInfo\u003C0x1::lumio_coin::LumioCoin\u003E")'
+}
 
 fn__necessary_programs
 
@@ -849,6 +880,7 @@ vfn_run)
     ${NODE_BIN} --config config/vfn.yaml
     ;;
 vote) fn__vote_test ;;
+test_transfer) fn__transfer_test ;;
 *) echo "$1 is not an option" ;;
 esac
 
