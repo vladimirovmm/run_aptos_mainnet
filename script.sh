@@ -88,6 +88,10 @@ indexer_grpc:
     output_batch_size: 100
     use_data_service_interface: true
 
+indexer_table_info:
+    table_info_service_mode:
+        IndexingOnly
+
 indexer_db_config:
     enable_transaction: false # To enable the indexer
     enable_event: false # To enable the indexer
@@ -172,6 +176,10 @@ indexer_grpc:
     processor_batch_size: 100
     output_batch_size: 100
     use_data_service_interface: true
+
+indexer_table_info:
+    table_info_service_mode:
+        IndexingOnly
 
 indexer_db_config:
     enable_transaction: false # To enable the indexer
