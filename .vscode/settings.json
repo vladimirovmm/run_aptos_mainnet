@@ -6,6 +6,7 @@
         "fport",
         "FULLNODE",
         "fullnodes",
+        "lumio",
         "pontem",
         "realpath",
         "rocksdb",
