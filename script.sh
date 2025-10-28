@@ -86,7 +86,17 @@ indexer_grpc:
     processor_task_count: 10
     processor_batch_size: 100
     output_batch_size: 100
-    # use_data_service_interface: true
+    use_data_service_interface: true
+
+indexer_table_info:
+    table_info_service_mode:
+        IndexingOnly
+
+indexer_db_config:
+    enable_transaction: false # To enable the indexer
+    enable_event: false # To enable the indexer
+    enable_event_v2_translation: false # To enable the indexer
+    enable_statekeys: false # To enable the indexer
 
 api:
     enabled: true
@@ -165,6 +175,11 @@ indexer_grpc:
     processor_task_count: 10
     processor_batch_size: 100
     output_batch_size: 100
+    use_data_service_interface: true
+
+indexer_table_info:
+    table_info_service_mode:
+        IndexingOnly
 
 indexer_db_config:
     enable_transaction: false # To enable the indexer
@@ -589,6 +604,7 @@ function fn__init {
     echo "* success"
 
     echo 'v1: indexer is enabled'
+    sed -i 's/false \# To enable the indexer/true \# To enable the indexer/g' ${NODE_DIR}/v1/configs/validator.yaml
     sed -i 's/false \# To enable the indexer/true \# To enable the indexer/g' ${NODE_DIR}/v1/configs/fullnode.yaml
 
     echo '= = = end = = ='
