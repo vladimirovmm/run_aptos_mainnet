@@ -25,11 +25,11 @@ NODE_BIN=${BIN_DIR}/${NODE_BIN_NAME}
 DEBUGGER_BIN_NAME=${NAME}'-debugger'
 DEBUGGER_BIN=${BIN_DIR}/${DEBUGGER_BIN_NAME}
 
-GRPS_MANAGER_NAME=${NAME}'-indexer-grpc-manager'
-GRPS_MANAGER_BIN=${BIN_DIR}/${GRPS_MANAGER_NAME}
+GRPC_MANAGER_NAME=${NAME}'-indexer-grpc-manager'
+GRPC_MANAGER_BIN=${BIN_DIR}/${GRPC_MANAGER_NAME}
 
-GRPS_DATA_NAME=${NAME}'-indexer-grpc-data-service-v2'
-GRPS_DATA_BIN=${BIN_DIR}/${GRPS_DATA_NAME}
+GRPC_DATA_NAME=${NAME}'-indexer-grpc-data-service-v2'
+GRPC_DATA_BIN=${BIN_DIR}/${GRPC_DATA_NAME}
 
 # wget -O validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
 VALIDATOR_CONFIG='base:
@@ -247,11 +247,11 @@ function fn__build_binaries {
     list[2,0]="${DEBUGGER_BIN}";
     list[2,1]="${DEBUGGER_BIN_NAME}";
 
-    list[3,0]="${GRPS_MANAGER_BIN}";
-    list[3,1]="${GRPS_MANAGER_NAME}";
+    list[3,0]="${GRPC_MANAGER_BIN}";
+    list[3,1]="${GRPC_MANAGER_NAME}";
 
-    list[4,0]="${GRPS_DATA_BIN}";
-    list[4,1]="${GRPS_DATA_NAME}";
+    list[4,0]="${GRPC_DATA_BIN}";
+    list[4,1]="${GRPC_DATA_NAME}";
 
     for ((i=0;i < 5; i++)); do
         path=${list[$i,0]};
