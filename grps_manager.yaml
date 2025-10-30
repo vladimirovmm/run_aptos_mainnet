@@ -1,0 +1,16 @@
+health_check_port: 18081 # The port for monitoring purpose.
+server_config:
+  is_master: true # Whether running in master mode.
+  service_config:
+    listen_address: 0.0.0.0:50052 # The port that serves Grpc requests.
+  self_advertised_address: 0.0.0.0:50052
+  grpc_manager_addresses: # All GrpcManager addresses in the stack, need to point to the server_config.self_advertised_address in GrpcManager config.
+    - >-
+      http://0.0.0.0:50052
+  fullnode_addresses: # All upstream FN addresses in the stack, need to point to the indexer_grpc.address in FN config.
+    - >-
+      http://0.0.0.0:50051
+  file_store_config:
+    file_store_type: LocalFileStore
+    local_file_store_path: ./tmp-indexer-data
+  chain_id: 1

@@ -15,13 +15,21 @@ ADDITIONAL_ACCOUNT_BALANCE=100000000000000000
 ADDITIONAL_ACCOUNTS_DIR=${ROOT_DIR}/additional_accounts
 
 NAME=${NAME:-'aptos'}
+
 CLI_BIN_NAME=${NAME}
 CLI_BIN=${BIN_DIR}/${CLI_BIN_NAME}
+
 NODE_BIN_NAME=${NAME}'-node'
 NODE_BIN=${BIN_DIR}/${NODE_BIN_NAME}
 
 DEBUGGER_BIN_NAME=${NAME}'-debugger'
 DEBUGGER_BIN=${BIN_DIR}/${DEBUGGER_BIN_NAME}
+
+GRPS_MANAGER_NAME=${NAME}'-indexer-grpc-manager'
+GRPS_MANAGER_BIN=${BIN_DIR}/${GRPS_MANAGER_NAME}
+
+GRPS_DATA_NAME=${NAME}'-indexer-grpc-data-service-v2'
+GRPS_DATA_BIN=${BIN_DIR}/${GRPS_DATA_NAME}
 
 # wget -O validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
 VALIDATOR_CONFIG='base:
@@ -86,7 +94,7 @@ indexer_grpc:
     processor_task_count: 10
     processor_batch_size: 100
     output_batch_size: 100
-    use_data_service_interface: true
+    use_data_service_interface: false
 
 indexer_table_info:
     table_info_service_mode:
@@ -175,7 +183,7 @@ indexer_grpc:
     processor_task_count: 10
     processor_batch_size: 100
     output_batch_size: 100
-    use_data_service_interface: true
+    use_data_service_interface: false
 
 indexer_table_info:
     table_info_service_mode:
@@ -228,18 +236,24 @@ function fn__build_binaries {
 
     declare -A list
     
-    list[0,0]="${CLI_BIN}" 
+    list[0,0]="${CLI_BIN}";
     list[0,1]="${CLI_BIN_NAME}";
     list[0,2]='--features indexer';
 
-    list[1,0]="${NODE_BIN}" 
+    list[1,0]="${NODE_BIN}";
     list[1,1]="${NODE_BIN_NAME}";
     list[1,2]='--features indexer';
 
-    list[2,0]="${DEBUGGER_BIN}" 
+    list[2,0]="${DEBUGGER_BIN}";
     list[2,1]="${DEBUGGER_BIN_NAME}";
 
-    for ((i=0;i < 3; i++)); do
+    list[3,0]="${GRPS_MANAGER_BIN}";
+    list[3,1]="${GRPS_MANAGER_NAME}";
+
+    list[4,0]="${GRPS_DATA_BIN}";
+    list[4,1]="${GRPS_DATA_NAME}";
+
+    for ((i=0;i < 5; i++)); do
         path=${list[$i,0]};
         package=${list[$i,1]};
         flag=${list[$i,2]};

@@ -1,11 +1,11 @@
 processes:
   # 8080
-  FULLNODE-1:
-    command: cd node/v1;  RUST_LOG=warn ../../bin/lumio-node --config configs/fullnode.yaml
+  VALIDATOR-1:
+    command: cd node/v1;  RUST_LOG=warn ../../bin/lumio-node --config configs/validator.yaml
   
   # 8081
   VALIDATOR-2:
-    command: cd node/v2; ../../bin/lumio-node --config configs/validator.yaml
+    command: cd node/v2; RUST_LOG=warn ../../bin/lumio-node --config configs/validator.yaml
 
   # 8082
   VALIDATOR-3:
@@ -22,3 +22,14 @@ processes:
   # 8085
   VALIDATOR-6:
     command: cd node/v6; ../../bin/lumio-node --config configs/validator.yaml
+
+  # 50051-50052
+  INDEXER-GRPC-MANAGER:
+    command: 
+      rm -rf ./tmp-indexer-data || true;
+      mkdir ./tmp-indexer-data || true;
+      RUST_LOG=info ./bin/lumio-indexer-grpc-manager --config-path ./grps_manager.yaml
+    
+  GRPC-DATA-SERVICE:
+    command: RUST_LOG=info ./bin/lumio-indexer-grpc-data-service-v2 --config-path ./grps_data_service.yaml
+
