@@ -1,4 +1,4 @@
-.history
+.history/
 # .vscode
 .aptos
 additional_accounts
@@ -10,3 +10,4 @@ vfn
 net.zip
 proposal.move
 update.move
+tmp-indexer-data

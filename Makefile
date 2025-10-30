@@ -23,4 +23,4 @@ make v1_rebuild_and_restart:
 		cargo build -p lumio-node --features indexer;
 	cp $(LUMIO_REP)/target/debug/lumio-node $(NODE_V1);
 	cd $(NODE_V1);\
-		RUST_LOG=warn ./lumio-node --config configs/validator.yaml
+		RUST_LOG=ERROR ./lumio-node --config configs/validator.yaml
