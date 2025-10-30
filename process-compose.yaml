@@ -28,8 +28,8 @@ processes:
     command: 
       rm -rf ./tmp-indexer-data || true;
       mkdir ./tmp-indexer-data || true;
-      RUST_LOG=info ./bin/lumio-indexer-grpc-manager --config-path ./grps_manager.yaml
+      RUST_LOG=info ./bin/lumio-indexer-grpc-manager --config-path ./grpc_manager.yaml
     
   GRPC-DATA-SERVICE:
-    command: RUST_LOG=info ./bin/lumio-indexer-grpc-data-service-v2 --config-path ./grps_data_service.yaml
+    command: RUST_LOG=info ./bin/lumio-indexer-grpc-data-service-v2 --config-path ./grpc_data_service.yaml
 
