@@ -32,4 +32,7 @@ processes:
     
   GRPC-DATA-SERVICE:
     command: RUST_LOG=info ./bin/lumio-indexer-grpc-data-service-v2 --config-path ./grpc_data_service.yaml
+  
+  FAUCET:
+    command: bin/lumio-faucet-service run --config-path testing_mint_funder_local.yaml
 

@@ -1,0 +1,32 @@
+---
+server_config:
+  listen_address: 127.0.0.1
+  listen_port: 7081
+  api_path_base: ""
+metrics_server_config:
+  disable: true
+  listen_address: 0.0.0.0
+  listen_port: 1
+bypasser_configs: []
+checker_configs: []
+funder_config:
+  type: MintFunder
+  node_url: "http://127.0.0.1:8080/"
+  api_key: ~
+  additional_headers: ~
+  key_file_path: "additional_accounts/root_key/user"
+  chain_id: 2
+  maximum_amount: ~
+  maximum_amount_with_bypass: ~
+  gas_unit_price_ttl_secs: 30
+  gas_unit_price_override: ~
+  max_gas_amount: 500000
+  transaction_expiration_secs: 30
+  wait_for_outstanding_txns_secs: 35
+  wait_for_transactions: false
+  mint_account_address: 000000000000000000000000000000000000000000000000000000000a550c18
+  do_not_delegate: false
+handler_config:
+  use_helpful_errors: true
+  return_rejections_early: false
+  max_concurrent_requests: ~

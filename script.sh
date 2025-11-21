@@ -31,6 +31,10 @@ GRPC_MANAGER_BIN=${BIN_DIR}/${GRPC_MANAGER_NAME}
 GRPC_DATA_NAME=${NAME}'-indexer-grpc-data-service-v2'
 GRPC_DATA_BIN=${BIN_DIR}/${GRPC_DATA_NAME}
 
+FAUCET_NAME=${NAME}'-faucet-service'
+FAUCET_BIN=${BIN_DIR}/${FAUCET_NAME}
+
+
 # wget -O validator.yaml https://raw.githubusercontent.com/aptos-labs/aptos-core/mainnet/docker/compose/aptos-node/validator.yaml
 VALIDATOR_CONFIG='base:
     role: "validator"
@@ -253,7 +257,10 @@ function fn__build_binaries {
     list[4,0]="${GRPC_DATA_BIN}";
     list[4,1]="${GRPC_DATA_NAME}";
 
-    for ((i=0;i < 5; i++)); do
+    list[5,0]="${FAUCET_BIN}";
+    list[5,1]="${FAUCET_NAME}";
+
+    for ((i=0;i < 6; i++)); do
         path=${list[$i,0]};
         package=${list[$i,1]};
         flag=${list[$i,2]};
@@ -394,6 +401,16 @@ function fn__validators_keys {
 
         fn__generate_key $file_path || 32
     done
+
+    echo 'Root account:'
+    dir=${ADDITIONAL_ACCOUNTS_DIR}/root_key
+
+    if [ ! -d $dir ]; then
+        mkdir -p $dir
+        file_path=$dir'/user'
+
+        fn__generate_key $file_path || 32
+    fi
 }
 
 function fn__genesis {
@@ -435,7 +452,9 @@ function fn__genesis {
     ${CLI_BIN} genesis generate-layout-template \
         --output-file $layout_path \
         --assume-yes || exit 41
-    sed -i 's/root_key: ~//g' $layout_path
+
+    root_key_pub=$(cat ${ADDITIONAL_ACCOUNTS_DIR}/root_key/user.pub)
+    sed -i 's/root_key: ~/root_key: '${root_key_pub}'/g' $layout_path
 
     users=""
     for ((i = 1; i <= ${NODE_COUNT}; i++)); do
@@ -445,10 +464,9 @@ function fn__genesis {
     users=$(printf '%s' ${users::-2})
 
     sed -i 's|users: \[\]|users: \['${users}'\]|g' $layout_path
-    sed -i 's/chain_id: 4/chain_id: 1/g' $layout_path
+    sed -i 's/chain_id: 4/chain_id: 2/g' $layout_path
 
     sed -i 's/allow_new_validators: false/allow_new_validators: true/g' $layout_path
-    sed -i 's/is_test: true/is_test: false/g' $layout_path
     let total_supply=${NODE_COUNT}*3*${NODE_BALANCE}+${ADDITIONAL_ACCOUNTS}*${ADDITIONAL_ACCOUNT_BALANCE}
     sed -i 's/total_supply: ~/total_supply: '$total_supply'/g' $layout_path
     
@@ -468,7 +486,6 @@ function fn__genesis {
     ${CLI_BIN} genesis generate-genesis \
         --local-repository-dir ${GENESIS_DIR} \
         --output-dir ${GENESIS_DIR} \
-        --mainnet \
         --assume-yes || exit 42
 }
 
